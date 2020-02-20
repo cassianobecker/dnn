@@ -120,14 +120,9 @@ class Runner:
         predictions = []
         targets = []
 
-        for batch_idx, (bold_ts, cues, graph_list, mapping_list, subject) in enumerate(self.train_loader):
+        for batch_idx, (data, target) in enumerate(self.train_loader):
 
-            if subject is None:
-                self.monitor_logger.warning('empty training batch, skipping')
-                continue
-
-            self.monitor_logger.info('training on subject {:} ({:} of {:})'.
-                                     format(subject[0], batch_idx + 1, len(self.train_loader.dataset.subjects)))
+            self.monitor_logger.info('training on batch idx  {:}'.format(batch_idx + 1))
 
             self.monitor_logger.info(print_memory())
 
@@ -135,29 +130,23 @@ class Runner:
             batch_predictions = []
             batch_targets = []
 
-            for i in range(len(bold_ts)):
+            output = model(data)
+            # prediction = output.max(1, keepdim=True)[1][0]
+            prediction = output.argmax(dim=1, keepdim=True)
 
-                output = model(bold_ts[i].to(self.device), graph_list, mapping_list)
-                target = torch.argmax(cues[:, i], dim=1)
-                prediction = output.max(1, keepdim=True)[1][0]
+            torch.cuda.synchronize()
 
-                torch.cuda.synchronize()
+            loss = F.nll_loss(output, target, weight=self.w)
+            loss = loss / mini_batch
+            loss.backward()
 
-                loss = F.nll_loss(output, target, weight=self.w)
-                loss = loss / mini_batch
-                loss.backward()
+            train_loss_value += loss.item()
+            predictions.extend(prediction.tolist())
+            targets.extend(target.tolist())
 
-                if i > 0 and i % mini_batch == 0:
-                    optimizer.step()
-                    optimizer.zero_grad()
-
-                train_loss_value += loss.item()
-                predictions.extend(prediction.tolist())
-                targets.extend(target.tolist())
-
-                batch_loss_value += loss.item()
-                batch_predictions.extend(prediction.tolist())
-                batch_targets.extend(target.tolist())
+            batch_loss_value += loss.item()
+            batch_predictions.extend(prediction.tolist())
+            batch_targets.extend(target.tolist())
 
             self.print_eval(batch_loss_value, batch_predictions, batch_targets, idx=batch_idx, header='batch idx:')
 
@@ -176,28 +165,21 @@ class Runner:
 
         with torch.no_grad():
 
-            for batch_idx, (bold_ts, cues, graph_list, mapping_list, subject) in enumerate(self.test_loader):
-
-                if subject is None:
-                    self.monitor_logger.warning('empty test batch, skipping')
-                    continue
-
-                self.monitor_logger.info('testing on subject {:} ({:} of {:})'.
-                                         format(subject[0], batch_idx + 1, len(self.test_loader.dataset.subjects)))
+            for data, target in self.test_loader:
 
                 self.monitor_logger.info(print_memory())
 
-                for i in range(len(bold_ts)):
-                    output = model(bold_ts[i].to(self.device), graph_list, mapping_list[0])
-                    target = torch.argmax(cues[:, i], dim=1)
-                    prediction = output.max(1, keepdim=True)[1][0]
+                data, target = data.to(self.device), target.to(self.device)
+                output = model(data)
 
-                    torch.cuda.synchronize()
+                prediction = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
 
-                    test_loss_value += F.nll_loss(output, target, reduction='sum').item()
+                torch.cuda.synchronize()
 
-                    predictions.extend(prediction.tolist())
-                    targets.extend(target.tolist())
+                test_loss_value += F.nll_loss(output, target, reduction='sum').item()
+
+                predictions.extend(prediction.tolist())
+                targets.extend(target.tolist())
 
         return test_loss_value, predictions, targets
 

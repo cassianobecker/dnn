@@ -1,53 +1,43 @@
 from __future__ import print_function
 
-import os
 import argparse
+import os
 
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import torch.utils.data
-import torch.nn.functional as functional
 
-from util.torch import seed_everything
+from dataset.mnist.torch_data import loaders
+from experiments.mnist.runner import Runner
 from util.experiment import get_experiment_params
-
-from dataset.hcp.torch_data import HcpDataset, HcpDataLoader
-
-from nn.chebnet import ChebTimeConvDeprecated
-
-from experiments.hcp.classifier.runner import Runner
+from util.torch import seed_everything
 
 
-class NetTGCNBasic(torch.nn.Module):
-    """
-    A 1-Layer time graph convolutional network
-    :param mat_size: temporary parameter to fix the FC1 size
-    """
+class Net(nn.Module):
 
-    def __init__(self, mat_size):
-        super(NetTGCNBasic, self).__init__()
+    def __init__(self):
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(1, 32, 3, 1)
+        self.conv2 = nn.Conv2d(32, 64, 3, 1)
+        self.dropout1 = nn.Dropout2d(0.25)
+        self.dropout2 = nn.Dropout2d(0.5)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
 
-        f1, g1, k1, h1 = 1, 64, 25, 15
-        self.conv1 = ChebTimeConvDeprecated(f1, g1, K=k1, H=h1)
-
-        n2 = mat_size
-        c = 6
-        self.fc1 = torch.nn.Linear(int(n2 * g1), c)
-
-    def forward(self, x, graph_list, mapping_list):
-        """
-        Computes forward pass through the time graph convolutional network
-        :param x: windowed BOLD signal to as input to the TGCN
-        :return: output of the TGCN forward pass
-        """
-
-        x = self.conv1(x, graph_list[0][0])
-
-        x = functional.relu(x)
-
-        x = x.view(x.shape[0], -1)
+    def forward(self, x):
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = torch.flatten(x, 1)
         x = self.fc1(x)
-
-        return functional.log_softmax(x, dim=1)
+        x = F.relu(x)
+        x = self.dropout2(x)
+        x = self.fc2(x)
+        output = F.log_softmax(x, dim=1)
+        return output
 
     def number_of_parameters(self):
         return sum(p.numel() for p in self.parameters() if p.requires_grad)
@@ -64,23 +54,15 @@ def experiment(params, args):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    coarsen = None
+    train_loader, test_loader = loaders(2000, 1000, 50)
 
-    train_set = HcpDataset(params, device, 'train', coarsen=coarsen)
-    train_loader = HcpDataLoader(train_set, shuffle=False)
-
-    test_set = HcpDataset(params, device, 'test', coarsen=coarsen)
-    test_loader = HcpDataLoader(test_set, shuffle=False)
-
-    data_shape = train_set.data_shape()
-
-    model = NetTGCNBasic(data_shape)
+    model = Net()
 
     runner = Runner(device, params, train_loader, test_loader)
 
     model = runner.initial_save_and_load(model, restart=False)
 
-    runner.run(args, model, run_initial_test=True)
+    runner.run(args, model, run_initial_test=False)
 
 
 if __name__ == '__main__':
