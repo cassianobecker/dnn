@@ -1,0 +1,22 @@
+name: dti-dnn
+channels:
+  - pytorch
+  - plotly
+  - conda-forge
+dependencies:
+  - python=3.8
+  - pytorch
+  - torchvision
+  - numpy
+  - scipy
+  - pandas
+  - sphinx # documentation
+  - jupyter_contrib_nbextensions
+  - ipywidgets # interactivity
+  - plotly
+  - plotly-orca # saving plotly
+  - psutil # saving plotly
+  - pip
+  - pip:
+    - sklearn
+    - sphinx_rtd_theme
