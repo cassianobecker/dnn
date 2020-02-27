@@ -1,4 +1,4 @@
-name: dti-dnn
+name: dnn
 channels:
   - pytorch
   - plotly
