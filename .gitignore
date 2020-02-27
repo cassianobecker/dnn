@@ -1,6 +1,7 @@
 # <<< Project >>>
 
 experiments/data
+dataset/hcp/conf/hcp_database.ini
 
 # <<< PyCharm >>>
 
