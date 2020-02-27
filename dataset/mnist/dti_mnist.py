@@ -122,7 +122,8 @@ def img_to_2dti(img):
 
 def save_tensor(dt):
 
-    base = '/Users/cassiano/Dropbox/cob/work/upenn/research/projects/defri/dnn/code/dti-mnist-proto/readMNIST/plotDTI/plotDTI'
+    base = '/Users/cassiano/Dropbox/cob/work/upenn/research/projects/defri/dnn/code/dti-mnist-proto/readMNIST/' +\
+           'plotDTI/plotDTI'
     fname = 'dt.mat'
     sio.savemat(base + '/' + fname, {'dt': dt})
 

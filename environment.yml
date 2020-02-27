@@ -16,7 +16,9 @@ dependencies:
   - plotly
   - plotly-orca # saving plotly
   - psutil # saving plotly
+  - matplotlib
   - pip
   - pip:
     - sklearn
     - sphinx_rtd_theme
+    - opencv-python
