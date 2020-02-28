@@ -17,6 +17,7 @@ dependencies:
   - plotly-orca # saving plotly
   - psutil # saving plotly
   - matplotlib
+  - nibabel
   - pip
   - pip:
     - sklearn
