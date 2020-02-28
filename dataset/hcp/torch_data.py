@@ -34,6 +34,8 @@ class HcpDataset(torch.utils.data.Dataset):
 
         database_settings = get_database_settings()
 
+        if not os.path.exists(os.path.join(params['FILE']['experiment_path'], 'log')):
+            os.mkdir(os.path.join(params['FILE']['experiment_path'], 'log'))
         log_furl = os.path.join(params['FILE']['experiment_path'], 'log', 'downloader.log')
         set_logger('HcpDataset', database_settings['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpDataset')
