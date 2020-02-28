@@ -7,7 +7,7 @@ from util.path import get_root
 from util.logging import get_logger, set_logger
 
 from dataset.hcp.hcp_data import HcpReader, SkipSubjectException
-from dataset.hcp.transforms import SlidingWindow, TrivialCoarsening
+# from dataset.hcp.transforms import SlidingWindow, TrivialCoarsening
 
 
 def get_database_settings():
@@ -44,14 +44,15 @@ class HcpDataset(torch.utils.data.Dataset):
 
         self.reader = HcpReader(database_settings, params)
 
-        list_url = os.path.join(params['FILE']['experiment_path'], 'conf', regime, self.session, 'subjects.txt')
+        # list_url = os.path.join(params['FILE']['experiment_path'], 'conf', regime, self.session, 'subjects.txt')
+        list_url = os.path.join(params['FILE']['experiment_path'], 'conf', 'subjects.txt')
         self.subjects = self.reader.load_subject_list(list_url)
 
-        if coarsen is None:
-            coarsen = TrivialCoarsening()
-        self.coarsen = coarsen
+        # if coarsen is None:
+        #     coarsen = TrivialCoarsening()
+        # self.coarsen = coarsen
 
-        self.transform = SlidingWindow(params['TIME_SERIES'], coarsen=coarsen)
+        # self.transform = SlidingWindow(params['TIME_SERIES'], coarsen=coarsen)
 
     def __len__(self):
         return len(self.subjects)
