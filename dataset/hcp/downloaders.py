@@ -84,7 +84,7 @@ class DtiDownloader:
         self.logger = get_logger('DtiDownloader')
 
 
-    def load(self, path, token_url):
+    def load(self, path, token_url, subject):
         """
         Checks for file in the specified path. If file is unavailable, downloads it from the HCP database.
         :param path: local path to check for file and download to if unavailable
@@ -106,7 +106,7 @@ class DtiDownloader:
         else:
 
             self.logger.info("file not found in: " + path)
-            subject = path.split('/')[5]
+            # subject = path.split('/')[5]
 
             key = path.split('/MNINonLinear/')[1]
             temp = key.split('/', 1)

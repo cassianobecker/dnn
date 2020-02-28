@@ -335,7 +335,7 @@ class HcpReader:
         file = os.path.join(furl, subject + '.aparc.a2009s.dti.conn.mat')
         token_url = os.path.join(furl, subject + '_404_token.txt')
 
-        self.dti_downloader.load(file, token_url)
+        self.dti_downloader.load(file, token_url, subject)
 
         # looks for local subject-specific DTI matrix
         try:
