@@ -85,7 +85,7 @@ class HcpReader:
                 fname = 'tfMRI_' + task + '_Physio_log.txt'
                 furl = os.path.join('HCP_1200', subject, 'MNINonLinear', 'Results', 'tfMRI_' + task, fname)
 
-                self.hcp_downloader.load(furl)
+                self.hcp_downloader.load(furl, subject)
 
                 heart, resp = self.read_vitals(furl)
                 vitals['heart'] = heart
@@ -147,13 +147,13 @@ class HcpReader:
         fname = 'tfMRI_' + task + '_Atlas.dtseries.nii'
         furl = os.path.join('HCP_1200', subject, 'MNINonLinear', 'Results', 'tfMRI_' + task, fname)
 
-        self.hcp_downloader.load(furl)
+        self.hcp_downloader.load(furl, subject)
 
         try:
             furl = os.path.join(self.local_folder, furl)
             ts = np.array(nib.load(furl).get_data())
             if self.delete_nii:
-                self.hcp_downloader.delete_dir(furl)
+                self.hcp_downloader.delete_dir(furl, subject)
         except:
             msg = "file " + furl + " not found."
             self.logger.error(msg)
@@ -174,7 +174,7 @@ class HcpReader:
 
         parc_furl = os.path.join(fpath, subject + suffixes[self.parcellation])
 
-        self.hcp_downloader.load(parc_furl)
+        self.hcp_downloader.load(parc_furl, subject)
 
         parc_vector, parc_labels = None, None
 
@@ -240,7 +240,7 @@ class HcpReader:
         for cue_name in cue_names:
             furl = os.path.join('HCP_1200', subject, 'MNINonLinear', 'Results', 'tfMRI_' + task, 'EVs',
                                 cue_name + '.txt')
-            self.hcp_downloader.load(furl)
+            self.hcp_downloader.load(furl, subject)
             cue_events[cue_name] = self.read_cue_events_file(os.path.join(self.local_folder, furl))
 
         cue_array = self.encode_cues(cue_events, ts_length)
@@ -311,7 +311,7 @@ class HcpReader:
 
         fname = subject + '.' + hemi + '.' + self.inflation + '.32k_fs_LR.surf.gii'
         furl = os.path.join('HCP_1200', subject, 'MNINonLinear', 'fsaverage_LR32k', fname)
-        self.hcp_downloader.load(furl)
+        self.hcp_downloader.load(furl, subject)
 
         try:
             img = nib.load(os.path.join(self.local_folder, furl))

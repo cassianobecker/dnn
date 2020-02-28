@@ -19,7 +19,7 @@ class HcpDownloader:
         set_logger('HcpDownloader', database_settings['LOGGING']['downloader_level'], log_furl)
         self.logger = get_logger('HcpDownloader')
 
-    def load(self, path):
+    def load(self, path, subject):
         """
         Checks for file in the specified path. If file is unavailable, downloads it from the HCP database.
         :param path: local path to check for file and download to if unavailable
@@ -34,7 +34,7 @@ class HcpDownloader:
 
             self.logger.info("file not found in: " + path)
 
-            subject = path.split('/')[5]
+            # subject = path.split('/')[5]
             key = path.split('/MNINonLinear/')[1]
             url = self.settings['SERVERS']['hcp_server_url'].format(subject, subject, subject) + key
 
