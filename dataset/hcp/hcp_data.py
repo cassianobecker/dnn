@@ -12,7 +12,7 @@ from sklearn.preprocessing import StandardScaler
 from util.logging import get_logger, set_logger
 from util.path import get_root
 
-from dataset.hcp.downloaders import HcpDownloader, DtiDownloader
+from dataset.hcp.downloaders import HcpDownloader, DtiDownloader, DiffusionDownloader
 from dataset.hcp.converter import convert_surf_to_nifti
 
 
@@ -28,6 +28,7 @@ class HcpReader:
         self.delete_nii = strtobool(database_settings['DIRECTORIES']['delete_after_downloading'])
         self.hcp_downloader = HcpDownloader(database_settings)
         self.dti_downloader = DtiDownloader(database_settings)
+        self.dif_downloader = DiffusionDownloader(database_settings)
         nib.imageglobals.logger = set_logger('Nibabel', database_settings['LOGGING']['nibabel_level'], log_furl)
 
         self.parcellation = params['PARCELLATION']['parcellation']
@@ -52,25 +53,62 @@ class HcpReader:
 
         self.logger.info('processing subject {}'.format(subject))
 
-        task_list = dict()
-        for task in tasks:
-            self.logger.debug('processing task {} ...'.format(task))
-            task_dict = dict()
-
-            task_dict['ts'] = self.get_fmri_time_series(subject, task)
-
-            task_dict['cues'] = self.get_cue_array(subject, task, task_dict['ts'].shape[1])
-
-            task_dict['vitals'] = self.get_vitals(subject, task)
-
-            task_list[task] = task_dict
+        # task_list = dict()
+        # for task in tasks:
+        #     self.logger.debug('processing task {} ...'.format(task))
+        #     task_dict = dict()
+        #     task_dict['ts'] = self.get_fmri_time_series(subject, task)
+        #     task_dict['cues'] = self.get_cue_array(subject, task, task_dict['ts'].shape[1])
+        #     task_dict['vitals'] = self.get_vitals(subject, task)
+        #     task_list[task] = task_dict
 
         data = dict()
-        data['functional'] = task_list
-
-        data['adjacency'] = self.get_adjacency(subject).tocsr()
+        # data['functional'] = task_list
+        # data['adjacency'] = self.get_adjacency(subject).tocsr()
+        data['diffusion'] = self.get_diffusion(subject)
 
         return data
+
+    # ##################### DIFFUSION #################################
+
+    DTI_BVALS = 'bvals'
+    DTI_BVECS = 'bvecs'
+    DTI_MASK = 'nodif_brain_mask.nii.gz'
+    DTI_DATA = 'data.nii.gz'
+
+    def get_diffusion(self, subject):
+        fnames = [self.DTI_BVALS, self.DTI_BVECS, self.DTI_MASK, self.DTI_DATA]
+        dif = self.load_raw_diffusion(subject, fnames)
+        dif[self.DTI_BVALS] = np.array(list(map(int, dif[self.DTI_BVALS].split(' '))))
+        dif[self.DTI_BVECS] = np.array(list(map(lambda s: list(map(float, s.split())),
+                                                dif[self.DTI_BVECS].strip().split('\n'))))
+        return dif
+        # ts = self.load_raw_time_series(subject)
+        # parc_vector, parc_labels = self.get_parcellation(subject)
+        # ts_p = self.parcellate(ts, parc_vector, parc_labels)
+        # ts_norm = self.normalize_time_series(ts_p)
+        # return ts_norm
+
+    def load_raw_diffusion(self, subject, fnames):
+        self.logger.debug("loading diffusion for " + subject)
+        dif = {}
+        for fname in fnames:
+            furl = os.path.join('HCP_1200', subject, 'T1w', 'Diffusion', fname)
+            self.dif_downloader.load(furl, subject)
+            try:
+                furl = os.path.join(self.local_folder, furl)
+                if 'nii' in fname:
+                    dif[fname] = np.array(nib.load(furl).get_data())
+                else:
+                    dif[fname] = open(furl, 'r').read()
+                if self.delete_nii:
+                    self.dif_downloader.delete_dir(furl)
+            except:
+                msg = f"Error loading file {furl}."
+                self.logger.error(msg)
+                raise SkipSubjectException(msg)
+        self.logger.debug("done")
+        return dif
 
     # ##################### VITALS ####################################
 
@@ -153,7 +191,7 @@ class HcpReader:
             furl = os.path.join(self.local_folder, furl)
             ts = np.array(nib.load(furl).get_data())
             if self.delete_nii:
-                self.hcp_downloader.delete_dir(furl, subject)
+                self.hcp_downloader.delete_dir(furl)
         except:
             msg = "file " + furl + " not found."
             self.logger.error(msg)
