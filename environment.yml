@@ -18,6 +18,7 @@ dependencies:
   - psutil # saving plotly
   - matplotlib
   - nibabel
+  - jupyterlab
   - pip
   - pip:
     - sklearn
