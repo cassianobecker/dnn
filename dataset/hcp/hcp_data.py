@@ -101,7 +101,7 @@ class HcpReader:
                 'dtifit -k {0}/data.nii.gz -o {1}/fsl -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
                 '--save_tensor'.format(diffusion_dir, processed_fsl_dir)
 
-            subprocess.run(dti_fit_command_str, shell=False, check=True)
+            pc = subprocess.run(dti_fit_command_str, shell=True, check=True)
 
         pass
 
