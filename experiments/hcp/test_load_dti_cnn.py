@@ -5,6 +5,7 @@ import argparse
 
 import torch
 import torch.utils.data
+import torch.nn.functional as functional
 
 from util.torch import seed_everything
 from util.experiment import get_experiment_params
@@ -23,17 +24,20 @@ def experiment(params, args):
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    coarsen = None
+    train_set = HcpDataset(params, device, 'train')
+    train_loader = HcpDataLoader(train_set, shuffle=False, batch_size=2)
 
-    train_set = HcpDataset(params, device, 'train', coarsen=coarsen)
+    train_set.data_for_subject('101915')
 
-    train_set.self_check()
+    for batch_idx, (dti_tensors, targets, subjects) in enumerate(train_loader):
 
-    pass
-    # train_loader = HcpDataLoader(train_set, shuffle=False)
+        print(batch_idx)
+        print(dti_tensors.shape)
+        print(targets.shape)
 
 
 if __name__ == '__main__':
+
     params = get_experiment_params(__file__, __name__)
 
     os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
