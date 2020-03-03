@@ -24,9 +24,17 @@ class Covariates:
             raise FileNotFoundError(error_str)
 
     def value(self, field, subject):
-        row = self.df.loc[self.df['Subject'] == int(subject)]
-        value = getattr(row, field).values[0]
-        return value
+
+        dfd = pd.get_dummies(self.df[field])
+        df = pd.concat([self.df, dfd], axis=1)[['Subject'] + list(dfd.columns)]
+
+        row = df.loc[df['Subject'] == int(subject)]
+        values = row[dfd.columns].values[0]
+
+        return values
+
+    def column_names(self, field):
+        return list(pd.get_dummies(self.df[field]).columns)
 
     def fields(self):
         return list(self.df.columns)
@@ -40,8 +48,10 @@ def test_covariates():
 
     subject = '100307'
     field = fields[3]
-    value = cov.value(field, subject)
-    print('{0} value for subject {1}: {2}'.format(field, subject, value))
+    values = cov.value(field, subject)
+    columns = cov.column_names(field)
+
+    print('{0} values for subject {1}: {2} for columns {3} '.format(field, subject, values, columns))
 
     pass
 

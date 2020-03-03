@@ -78,19 +78,6 @@ def get_dti_object(v, l, report_progress = False):
     return dt
 
 
-def build_dti_tensor_image(subjpath):
-    """
-    Reads in eigenvectors and eigenvalues from DTI fit and returns  3*3*i*j*k DTI array for input to nn
-    """
-    dti_tensor = 0
-    for i in range(1,4):
-        evecs_file = glob.glob(os.path.join(subjpath, '*V' + str(i) + '*'))[0]
-        evals_file = glob.glob(os.path.join(subjpath, '*L' + str(i) + '*'))[0]
-        evecs = nib.load(evecs_file).get_fdata()
-        evals = nib.load(evals_file).get_fdata()
-        dti_tensor = dti_tensor + np.einsum('abc,abci,abcj->ijabc', evals, evecs, evecs)
-    return dti_tensor
-
 # subjpath = '/Users/lindenmp/Dropbox/Work/ResProjects/Becker_DNN/dataset/hcp/reg_test/100307ToTemplate'
 # v, l = return_dti_derivs(subjpath)
 # dt = get_dti_object(v, l, report_progress = True)
