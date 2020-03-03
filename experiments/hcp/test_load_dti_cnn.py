@@ -27,7 +27,7 @@ def experiment(params, args):
     train_set = HcpDataset(params, device, 'train')
     train_loader = HcpDataLoader(train_set, shuffle=False, batch_size=2)
 
-    train_set.data_for_subject('101915')
+    train_set.data_for_subject('100307')
 
     for batch_idx, (dti_tensors, targets, subjects) in enumerate(train_loader):
 
