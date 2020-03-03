@@ -98,7 +98,7 @@ class HcpReader:
         if not os.path.isfile(os.path.join(processed_fsl_dir, 'fsl_V3.nii.gz')):
             time.sleep(10)
             dti_fit_command_str = \
-                'dtifit -k {0}/data.nii.gz -o {1} -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
+                'dtifit -k {0}/data.nii.gz -o {1}/fsl -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
                 '--save_tensor'.format(diffusion_dir, processed_fsl_dir)
 
             pc = subprocess.run(dti_fit_command_str, shell=True, check=True)
