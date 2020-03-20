@@ -49,6 +49,7 @@ def main():
         print('processing subject {}'.format(subject))
         try:
             process_set.reader.process_subject(subject, delete_folders=True)
+            # process_set.reader.get_diffusion(subject)
         except Exception as e:
             print(e)
 

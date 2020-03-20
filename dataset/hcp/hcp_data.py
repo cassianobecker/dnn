@@ -25,7 +25,7 @@ class HcpReader:
         if not os.path.isdir(self.processing_folder):
             os.makedirs(self.processing_folder)
 
-        self.processing_folder = database_settings['DIRECTORIES']['local_server_directory']
+        self.mirror_folder = database_settings['DIRECTORIES']['local_server_directory']
 
         self.delete_nii = strtobool(database_settings['DIRECTORIES']['delete_after_downloading'])
         self.dif_downloader = DiffusionDownloader(database_settings)
@@ -46,10 +46,10 @@ class HcpReader:
         return subjects
 
     def _subject_dir(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200', subject)
+        return os.path.join(self.mirror_folder, 'HCP_1200', subject)
 
     def _diffusion_dir(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200', subject, 'T1w', 'Diffusion')
+        return os.path.join('HCP_1200', subject, 'T1w', 'Diffusion')
 
     def _fsl_folder(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'fsl')
@@ -128,7 +128,7 @@ class HcpReader:
 
     def fit_dti(self, subject):
 
-        diffusion_dir = self._diffusion_dir(subject)
+        diffusion_dir = os.path.join(self.mirror_folder, self._diffusion_dir(subject))
         processed_fsl_dir = self._fsl_folder(subject)
 
         if os.path.isdir(processed_fsl_dir):
