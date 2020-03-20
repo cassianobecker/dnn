@@ -38,11 +38,10 @@ class HcpDataset(torch.utils.data.Dataset):
         self.logger.info('*** starting new {:} dataset'.format(regime))
 
         self.device = device
-        self.session = params['SESSION'][regime]
 
         self.reader = HcpReader(database_settings, params)
 
-        list_url = os.path.join(params['FILE']['experiment_path'], 'conf', 'subjects.txt')
+        list_url = os.path.join(params['FILE']['experiment_path'], 'conf', regime, 'subjects.txt')
         self.subjects = self.reader.load_subject_list(list_url)
 
     def __len__(self):
@@ -56,7 +55,9 @@ class HcpDataset(torch.utils.data.Dataset):
 
         try:
             self.reader.logger.info("feeding subject {:}".format(subject))
-            dti_tensor, target = self.reader.process_subject(subject, [self.session])
+
+            dti_tensor = self.reader.load_dti_tensor_image(subject)
+            target = self.reader.load_covariate(subject)
 
         except SkipSubjectException:
             self.reader.logger.warning("skipping subject {:}".format(subject))
@@ -65,7 +66,7 @@ class HcpDataset(torch.utils.data.Dataset):
 
     def self_check(self):
         for subject in self.subjects:
-            self.reader.process_subject(subject, [self.session])
+            self.reader.process_subject(subject)
 
 
 class HcpDataLoader(torch.utils.data.DataLoader):

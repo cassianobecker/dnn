@@ -1,6 +1,7 @@
 import os
 import sys
 import requests
+import boto3
 
 from util.logging import get_logger, set_logger
 
@@ -23,43 +24,56 @@ class DiffusionDownloader:
         :param subject: a string of the subject ID (e.g., 100206)
         :return: None
         """
-        path = os.path.join(self.settings['DIRECTORIES']['local_server_directory'], path)
-        if os.path.isfile(path):
-            self.logger.debug("file found in: " + path)
+        local_path = os.path.join(self.settings['DIRECTORIES']['local_server_directory'], path)
+        if os.path.isfile(local_path):
+            self.logger.debug("file found in: " + local_path)
         else:
-            self.logger.info("file not found in: " + path)
-            key = path.split('/T1w/')[1]
-            url = self.settings['SERVERS']['dif_server_url'].format(subject, subject, subject) + key
-            self.logger.info("remote download from server: " + url)
+            bucket = 'hcp-openaccess'
+            os.makedirs(os.path.dirname(local_path), exist_ok=True)
+            try:
+                boto3.resource('s3').Bucket(bucket).download_file(path, local_path)
+            except Exception as e:
+                print(e)
+            # self.logger.info("file not found in: " + path)
+            # key = path.split('/T1w/')[1]
+            # url = self.settings['SERVERS']['dif_server_url'].format(subject, subject, subject) + key
+            # self.logger.info("remote download from server: " + url)
+            #
+            # if self.settings['CREDENTIALS']['hcp_server_username'] == '' \
+            #         or self.settings['CREDENTIALS']['hcp_server_password'] == '':
+            #     self.logger.error("HCP server credentials are empty")
+            #
+            # r = requests.get(url,
+            #                  auth=(self.settings['CREDENTIALS']['hcp_server_username'],
+            #                        self.settings['CREDENTIALS']['hcp_server_password']),
+            #                  stream=True)
+            #
+            # if r.status_code == 200:
+            #
+            #     os.makedirs(os.path.dirname(path), exist_ok=True)
+            #     with open(path, 'wb') as f:
+            #         self.logger.debug("writing to path: " + path)
+            #         f.write(r.content)
+            #         self.logger.debug("writing to " + path + 'completed')
 
-            if self.settings['CREDENTIALS']['hcp_server_username'] == '' \
-                    or self.settings['CREDENTIALS']['hcp_server_password'] == '':
-                self.logger.error("HCP server credentials are empty")
-
-            r = requests.get(url,
-                             auth=(self.settings['CREDENTIALS']['hcp_server_username'],
-                                   self.settings['CREDENTIALS']['hcp_server_password']),
-                             stream=True)
-
-            if r.status_code == 200:
-                os.makedirs(os.path.dirname(path), exist_ok=True)
-                with open(path, 'wb') as f:
-                    msg = f"DiffusionDownloader: Writing to path '{path}'"
-                    self.logger.debug(msg)
-                    print(msg)
-                    # f.write(r.content)
-                    dl = 0
-                    total_length = int(r.headers.get('content-length'))
-                    for chunk in r.iter_content(chunk_size=512):
-                        if chunk:
-                            dl += len(chunk)
-                            done = int(50*dl/total_length)
-                            sys.stdout.write(f"\r[{'='*done}{' '*(50-done)}] "+
-                                             f"{int(dl/1e6)}/{int(total_length/1e6)} MB")
-                            f.write(chunk)
-                    self.logger.debug("writing to " + path + 'completed')
-            else:
-                self.logger.error("request unsuccessful: Error " + str(r.status_code))
+                # os.makedirs(os.path.dirname(path), exist_ok=True)
+                # with open(path, 'wb') as f:
+                #     msg = f"DiffusionDownloader: Writing to path '{path}'"
+                #     self.logger.debug(msg)
+                #     print(msg)
+                #     # f.write(r.content)
+                #     dl = 0
+                #     total_length = int(r.headers.get('content-length'))
+                #     for chunk in r.iter_content(chunk_size=512*1024):
+                #         if chunk:
+                #             dl += len(chunk)
+                #             done = int(50*dl/total_length)
+                #             sys.stdout.write(f"\r[{'='*done}{' '*(50-done)}] "+
+                #                              f"{int(dl/1e6)}/{int(total_length/1e6)} MB")
+                #             f.write(chunk)
+                #     self.logger.debug("writing to " + path + 'completed')
+            # else:
+            #     self.logger.error("request unsuccessful: Error " + str(r.status_code))
 
     def delete_dir(self, path):
         path = os.path.join(self.settings['DIRECTORIES']['local_server_directory'], path)

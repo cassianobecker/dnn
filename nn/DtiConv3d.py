@@ -3,6 +3,40 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class DtiConv3dTorch(nn.Module):
+    def __init__(self, c_out, kernel_dims, strides):
+        super(DtiConv3dTorch, self).__init__()
+
+        self.strides = strides
+        self.c_out = c_out
+        self.kernel_dims = kernel_dims
+        self.dti_dim = 3
+
+        self.weight = nn.Parameter(torch.Tensor(c_out, self.dti_dim, self.dti_dim,
+                                                kernel_dims[0], kernel_dims[1], kernel_dims[2]))
+        self.register_parameter('weight', self.weight)
+        self.weight.data.uniform_(-0.1, 0.1)
+
+    def forward(self, x):
+
+        sx = x.shape
+        sw = self.weight.shape
+
+        y = F.conv3d(x.view(sx[0], sx[1] * sx[2], sx[3], sx[4], sx[5]).type(self.weight.dtype),
+                 self.weight.view(sw[0], sw[1] * sw[2], sw[3], sw[4], sw[5]), stride=self.strides)
+
+        return y
+
+    def forward2(self, x):
+
+        xu = x.unfold(3, self.kernel_dims[0], 1).unfold(4, self.kernel_dims[1], 1).unfold(5, self.kernel_dims[2], 1) \
+            .permute(3, 4, 5, 0, 1, 2, 6, 7, 8)
+
+        y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
+
+        return y
+
+
 class DtiConv3d(nn.Module):
     def __init__(self, c_out, kernel_dims, skip):
         super(DtiConv3d, self).__init__()
@@ -25,6 +59,59 @@ class DtiConv3d(nn.Module):
         y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
 
         return y
+
+
+class DtiConv3dBatch(nn.Module):
+    def __init__(self, c_out, kernel_dims, skip):
+        super(DtiConv3dBatch, self).__init__()
+
+        self.c_out = c_out
+        self.kernel_dims = kernel_dims
+        self.skip = skip
+        self.dti_dim = 3
+
+        self.weight = nn.Parameter(torch.Tensor(c_out, self.dti_dim, self.dti_dim,
+                                                kernel_dims[0], kernel_dims[1], kernel_dims[2]))
+        self.register_parameter('weight', self.weight)
+        self.weight.data.uniform_(-0.1, 0.1)
+
+    def forward(self, x):
+
+        # xu = x.unfold(3, self.kernel_dims[0], 1).unfold(4, self.kernel_dims[1], 1).unfold(5, self.kernel_dims[2], 1) \
+        #     .permute(3, 4, 5, 0, 1, 2, 6, 7, 8)
+
+        # print(xu.shape)
+        # print(self.weight.shape)
+
+        # y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
+
+        y = self.forward2(x)
+
+        return y
+
+    def forward2(self,x):
+
+        s = x.shape
+
+        batch = s[0]
+        c_out = self.c_out
+
+        kx = s[3] - self.kernel_dims[0] + self.skip
+        ky = s[4] - self.kernel_dims[1] + self.skip
+        kz = s[5] - self.kernel_dims[2] + self.skip
+
+        z = torch.zeros([batch, c_out, kx, ky, kz], dtype=x.dtype)
+
+        for i in range(kx):
+            print(i)
+            for j in range(ky):
+                for k in range(kz):
+                    xx = x[:, :, :, i: i + self.kernel_dims[0], j: j + self.kernel_dims[1], k: k + self.kernel_dims[2]]
+
+                    xxx = xx.reshape(batch, -1).type(self.weight.dtype)
+                    z[:, :, i, j, k] = torch.mm(self.weight.view(c_out, -1), xxx.t()).t()
+
+        return z
 
 
 class PyConv2d(nn.Module):

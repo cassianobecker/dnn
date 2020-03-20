@@ -19,6 +19,7 @@ dependencies:
   - matplotlib
   - nibabel
   - jupyterlab
+  - boto3
   - pip
   - pip:
     - sklearn

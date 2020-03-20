@@ -1,8 +1,8 @@
 import glob
 import os
-import time
 import subprocess
 from distutils.util import strtobool
+import shutil
 
 import nibabel as nib
 import numpy as np
@@ -20,7 +20,13 @@ class HcpReader:
         set_logger('HcpReader', database_settings['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.local_folder = database_settings['DIRECTORIES']['local_server_directory']
+        self.local_folder = database_settings['DIRECTORIES']['local_directory']
+
+        if not os.path.isdir(self.local_folder):
+            os.makedirs(self.local_folder)
+
+        self.mirror_folder = database_settings['DIRECTORIES']['mirror_directory']
+
         self.delete_nii = strtobool(database_settings['DIRECTORIES']['delete_after_downloading'])
         self.dif_downloader = DiffusionDownloader(database_settings)
         nib.imageglobals.logger = set_logger('Nibabel', database_settings['LOGGING']['nibabel_level'], log_furl)
@@ -28,29 +34,75 @@ class HcpReader:
         self.field = params['COVARIATES']['field']
         self.covariates = Covariates()
 
+        self.dti_files = {'fsl_FA.nii.gz', 'fsl_L1.nii.gz', 'fsl_L2.nii.gz', 'fsl_L3.nii.gz', 'fsl_MD.nii.gz',
+                          'fsl_MO.nii.gz',  'fsl_S0.nii.gz',  'fsl_V1.nii.gz',  'fsl_V2.nii.gz',  'fsl_V3.nii.gz',
+                          'fsl_tensor.nii.gz'}
+
     def load_subject_list(self, list_url):
-
         self.logger.info('loading subjects from ' + list_url)
-
         with open(list_url, 'r') as f:
             subjects = [s.strip() for s in f.readlines()]
-
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
-
         return subjects
 
-    def process_subject(self, subject, tasks):
+    def _subject_dir(self, subject):
+        return os.path.join(self.mirror_folder, 'HCP_1200', subject)
+
+    def _diffusion_dir(self, subject):
+        return os.path.join(self.mirror_folder, 'HCP_1200', subject, 'T1w', 'Diffusion')
+
+    def _fsl_folder(self, subject):
+        return os.path.join(self.local_folder, 'HCP_1200_processed', subject, 'fsl')
+
+    def _processed_tensor_folder(self, subject):
+        return os.path.join(self.local_folder, 'HCP_1200_tensor', subject)
+
+    def _processed_tensor_url(self, subject):
+        return os.path.join(self.local_folder, 'HCP_1200_tensor', subject,  'dti_tensor_' + subject + '.npz')
+
+    def _is_dti_processed(self, subject):
+        processed_fsl_dir = self._fsl_folder(subject)
+        dir_contents = os.listdir(processed_fsl_dir)
+        return dir_contents == self.dti_files
+
+    def _is_tensor_saved(self, subject):
+        exists = False
+        if os.path.isdir(self._processed_tensor_folder(subject)):
+            exists = os.path.isfile(self._processed_tensor_url(subject))
+        return exists
+
+    def _delete_diffusion_folder(self, subject):
+        diffusion_dir = self._subject_dir(subject)
+        if os.path.exists(diffusion_dir):
+            shutil.rmtree(diffusion_dir)
+
+    def _delete_fsl_folder(self, subject):
+        processed_fsl_dir = self._fsl_folder(subject)
+        if os.path.exists(processed_fsl_dir):
+            shutil.rmtree(processed_fsl_dir)
+
+    def process_subject(self, subject, delete_folders=False):
 
         self.logger.info('processing subject {}'.format(subject))
-        print('getting data for subject {}'.format(subject))
 
-        self.get_diffusion(subject)
-        self.fit_dti(subject)
+        if not os.path.exists(self._processed_tensor_url(subject)):
+            self.get_diffusion(subject)
+            self.fit_dti(subject)
+            self.save_dti_tensor_image(subject)
 
+        if delete_folders is True:
+            self._delete_diffusion_folder(subject)
+            self._delete_fsl_folder(subject)
+
+    def save_dti_tensor_image(self, subject):
+        if not os.path.isdir(self._processed_tensor_folder(subject)):
+            os.makedirs(self._processed_tensor_folder(subject))
         dti_tensor = self.build_dti_tensor_image(subject)
-        target = self.load_covariate(subject)
+        np.savez_compressed(self._processed_tensor_url(subject), dti_tensor=dti_tensor)
 
-        return dti_tensor, target
+    def load_dti_tensor_image(self, subject):
+        dti_tensor = np.load(self._processed_tensor_url(subject))
+        return dti_tensor['dti_tensor']
 
     # ##################### DIFFUSION #################################
 
@@ -69,47 +121,40 @@ class HcpReader:
         self.logger.debug("loading diffusion for " + subject)
         dif = {}
         for fname in fnames:
-            furl = os.path.join('HCP_1200', subject, 'T1w', 'Diffusion', fname)
+            furl = os.path.join(self._diffusion_dir(subject), fname)
             self.dif_downloader.load(furl, subject)
-            try:
-                furl = os.path.join(self.local_folder, furl)
-                if 'nii' in fname:
-                    dif[fname] = np.array(nib.load(furl).get_data())
-                else:
-                    dif[fname] = open(furl, 'r').read()
-                if self.delete_nii:
-                    self.dif_downloader.delete_dir(furl)
-            except:
-                msg = f"Error loading file {furl}."
-                self.logger.error(msg)
-                raise SkipSubjectException(msg)
         self.logger.debug("done")
         return dif
 
     def fit_dti(self, subject):
 
-        diffusion_dir = os.path.join(self.local_folder, 'HCP_1200', subject, 'T1w', 'Diffusion')
+        diffusion_dir = self._diffusion_dir(subject)
+        processed_fsl_dir = self._fsl_folder(subject)
 
-        processed_fsl_dir = os.path.join(self.local_folder, 'HCP_1200_processed', subject, 'fsl')
+        if os.path.isdir(processed_fsl_dir):
+            dti_file = set(os.listdir(processed_fsl_dir))
+        else:
+            dti_file = {}
 
-        if not os.path.isdir(processed_fsl_dir):
-            os.makedirs(processed_fsl_dir)
+        if dti_file == self.dti_files:
+            self.logger.info('processed dti files found for subject {}'.format(subject))
 
-        if not os.path.isfile(os.path.join(processed_fsl_dir, 'fsl_V3.nii.gz')):
-            time.sleep(10)
+        else:
+            self.logger.info('processing dti files for subject {}'.format(subject))
+            if not os.path.isdir(processed_fsl_dir):
+                os.makedirs(processed_fsl_dir)
+
             dti_fit_command_str = \
                 'dtifit -k {0}/data.nii.gz -o {1}/fsl -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
                 '--save_tensor'.format(diffusion_dir, processed_fsl_dir)
 
             subprocess.run(dti_fit_command_str, shell=True, check=True)
 
-        pass
-
     def build_dti_tensor_image(self, subject):
         """
         Reads in eigenvectors and eigenvalues from DTI fit and returns  3*3*i*j*k DTI array for input to nn
         """
-        processed_fsl_dir = os.path.join(self.local_folder, 'HCP_1200_processed', subject, 'fsl')
+        processed_fsl_dir = self._fsl_folder(subject)
 
         dti_tensor = 0
         for i in range(1, 4):
@@ -121,7 +166,7 @@ class HcpReader:
         return dti_tensor
 
     def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject)
+        return self.covariates.value(self.field, subject).argmin()
 
 
 class SkipSubjectException(Exception):
