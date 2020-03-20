@@ -20,12 +20,12 @@ class HcpReader:
         set_logger('HcpReader', database_settings['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.local_folder = database_settings['DIRECTORIES']['local_directory']
+        self.processing_folder = database_settings['DIRECTORIES']['local_processing_directory']
 
-        if not os.path.isdir(self.local_folder):
-            os.makedirs(self.local_folder)
+        if not os.path.isdir(self.processing_folder):
+            os.makedirs(self.processing_folder)
 
-        self.mirror_folder = database_settings['DIRECTORIES']['mirror_directory']
+        self.processing_folder = database_settings['DIRECTORIES']['local_server_directory']
 
         self.delete_nii = strtobool(database_settings['DIRECTORIES']['delete_after_downloading'])
         self.dif_downloader = DiffusionDownloader(database_settings)
@@ -46,19 +46,19 @@ class HcpReader:
         return subjects
 
     def _subject_dir(self, subject):
-        return os.path.join(self.mirror_folder, 'HCP_1200', subject)
+        return os.path.join(self.processing_folder, 'HCP_1200', subject)
 
     def _diffusion_dir(self, subject):
-        return os.path.join(self.mirror_folder, 'HCP_1200', subject, 'T1w', 'Diffusion')
+        return os.path.join(self.processing_folder, 'HCP_1200', subject, 'T1w', 'Diffusion')
 
     def _fsl_folder(self, subject):
-        return os.path.join(self.local_folder, 'HCP_1200_processed', subject, 'fsl')
+        return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'fsl')
 
     def _processed_tensor_folder(self, subject):
-        return os.path.join(self.local_folder, 'HCP_1200_tensor', subject)
+        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
 
     def _processed_tensor_url(self, subject):
-        return os.path.join(self.local_folder, 'HCP_1200_tensor', subject,  'dti_tensor_' + subject + '.npz')
+        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
 
     def _is_dti_processed(self, subject):
         processed_fsl_dir = self._fsl_folder(subject)
