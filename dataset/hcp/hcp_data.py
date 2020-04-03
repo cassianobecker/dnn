@@ -320,15 +320,15 @@ class HcpReader:
         """
         Reads in eigenvectors and eigenvalues from DTI fit and returns  3*3*i*j*k DTI array for input to nn
         """
-        processed_fsl_dir = self._fsl_folder(subject)
+        ants_dir = self._ants_folder(subject)
 
         dti_tensor = 0
         for i in range(1, 4):
-            evecs_file = glob.glob(os.path.join(processed_fsl_dir, '*V' + str(i) + '*'))[0]
-            evals_file = glob.glob(os.path.join(processed_fsl_dir, '*L' + str(i) + '*'))[0]
-            evecs = nib.load(evecs_file).get_fdata()
-            evals = nib.load(evals_file).get_fdata()
-            dti_tensor = dti_tensor + np.einsum('abc,abci,abcj->ijabc', evals, evecs, evecs)
+            bvecs_file = glob.glob(os.path.join(ants_dir, 'V' + str(i) + '*'))[0]
+            bvals_file = glob.glob(os.path.join(ants_dir, 'L' + str(i) + '*'))[0]
+            bvecs = nib.load(bvecs_file).get_fdata()
+            bvals = nib.load(bvals_file).get_fdata()
+            dti_tensor = dti_tensor + np.einsum('abc,abci,abcj->ijabc', bvals, bvecs, bvecs)
         return dti_tensor
 
     def load_covariate(self, subject):
