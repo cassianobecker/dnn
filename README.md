@@ -18,7 +18,7 @@ Short description here.
   * When on `CBICA`, set `local_server_directory = '/cbica/projects/HCP_Data_Releases'`.
 * Download covariates ([link](https://db.humanconnectome.org/REST/search/dict/Subject%20Information/results?format=csv&removeDelimitersFromFieldValues=true&restricted=0&project=HCP_1200)), and save as `dataset/hcp/res/hcp_covariates.csv`. 
 * For AWS access, get AWS credentials (see [link](https://wiki.humanconnectome.org/plugins/viewsource/viewpagesrc.action?pageId=67666030)).
-  * Save to `~/.aws/credentials/` as
+  * Save to `~/.aws/credentials` as
     ```
     [default]
 	\\\aws_access_key_id = 
