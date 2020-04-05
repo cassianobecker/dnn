@@ -39,6 +39,8 @@ class HcpReader:
                           'fsl_tensor.nii.gz'}
 
         self.template_folder = database_settings['DIRECTORIES']['template_directory']
+        self.template_file = 'FMRIB58_FA_2mm.nii.gz'
+        self.mask_file = 'FMRIB58_FA-skeleton_2mm.nii.gz'
 
         self.converted_dti_files = {'comp_dxz.nii.gz', 'FA.nii.gz', 'comp_dxx.nii.gz',
                                     'comp_dyz.nii.gz', 'comp_dzz.nii.gz', 'comp_dyy.nii.gz',
@@ -238,6 +240,7 @@ class HcpReader:
         converted_ants_dir = self._conversion_folder(subject)
         registered_dti_dir = self._reg_folder(subject)
         template_folder = self.template_folder
+        template_file = self.template_file
 
         if os.path.isdir(registered_dti_dir):
             registered_file = set(os.listdir(registered_dti_dir))
@@ -280,6 +283,8 @@ class HcpReader:
         """
         registered_dti_dir = self._reg_folder(subject)
         ants_dir = self._ants_folder(subject)
+        template_folder = self.template_folder
+        mask_file = self.mask_file
 
         if os.path.isdir(ants_dir):
             ants_file = set(os.listdir(ants_dir))
@@ -333,6 +338,14 @@ class HcpReader:
             os.remove(os.path.join(ants_dir,'V1.nii.gz'))
             os.remove(os.path.join(ants_dir,'V2.nii.gz'))
             os.remove(os.path.join(ants_dir,'V3.nii.gz'))
+
+            # 5) mask outputs
+            file_list = glob.glob(os.path.join(ants_dir,'*.nii.gz'), recursive=False)
+            for file in file_list:
+                command_str = \
+                    'fslmaths {0} -mul {1}/{2} {0}' \
+                    .format(file, template_folder, mask_file)
+                subprocess.run(command_str, shell=True, check=True)
 
     def build_dti_tensor_image(self, subject):
         """
