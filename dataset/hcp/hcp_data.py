@@ -44,9 +44,9 @@ class HcpReader:
                                     'comp_dyz.nii.gz', 'comp_dzz.nii.gz', 'comp_dyy.nii.gz',
                                     'comp_dxy.nii.gz', 'dtUpper.nii.gz', 'DT.nii.gz'}
 
-        self.registered_dti_files = {'DTReorientedWarp.nii.gz', 'FA_reg_1InverseWarp.nii.gz', 'FA_reg_0GenericAffine.mat',
-                                    'FA_reg_1Warp.nii.gz', 'FA_reg_Warped.nii.gz', 'DTDeformed.nii.gz',
-                                    'FA_reg_combinedWarp.nii.gz', 'FA_reg_InverseWarped.nii.gz'}
+        self.registered_dti_files = {'DTDeformed.nii.gz', 'FA_reg_0GenericAffine.mat', 'FA_reg_InverseWarped.nii.gz',
+                                    'FA_reg_combinedWarp.nii.gz', 'FA_reg_Warped.nii.gz', 'DTReorientedWarp.nii.gz',
+                                    'FA_reg_1InverseWarp.nii.gz', 'FA_reg_1Warp.nii.gz'}
 
         self.ants_dti_files = {'V1Deformed.nii.gz', 'L1Deformed.nii.gz', 'L3Deformed.nii.gz',
                                 'V3Deformed.nii.gz', 'V2Deformed.nii.gz', 'L2Deformed.nii.gz'}
