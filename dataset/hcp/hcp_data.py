@@ -103,6 +103,21 @@ class HcpReader:
         if os.path.exists(processed_fsl_dir):
             shutil.rmtree(processed_fsl_dir)
 
+    def _delete_conversion_folder(self, subject):
+        converted_dir = self._conversion_folder(subject)
+        if os.path.exists(converted_dir):
+            shutil.rmtree(converted_dir)
+
+    def _delete_reg_folder(self, subject):
+        registered_dti_dir = self._reg_folder(subject)
+        if os.path.exists(registered_dti_dir):
+            shutil.rmtree(registered_dti_dir)
+
+    def _delete_ants_folder(self, subject):
+        ants_dir = self._ants_folder(subject)
+        if os.path.exists(ants_dir):
+            shutil.rmtree(ants_dir)
+
     def process_subject(self, subject, delete_folders=False):
 
         self.logger.info('processing subject {}'.format(subject))
@@ -118,6 +133,9 @@ class HcpReader:
         if delete_folders is True:
             self._delete_diffusion_folder(subject)
             self._delete_fsl_folder(subject)
+            self._delete_conversion_folder(subject)
+            self._delete_reg_folder(subject)
+            self._delete_ants_folder(subject)
 
     def save_dti_tensor_image(self, subject):
         if not os.path.isdir(self._processed_tensor_folder(subject)):
