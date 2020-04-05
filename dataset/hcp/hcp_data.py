@@ -70,7 +70,7 @@ class HcpReader:
         return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'fsl')
 
     def _conversion_folder(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'ants_converted')
+        return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'converted')
 
     def _reg_folder(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'reg')
@@ -85,9 +85,9 @@ class HcpReader:
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
 
     def _is_dti_processed(self, subject):
-        processed_fsl_dir = self._fsl_folder(subject)
-        dir_contents = os.listdir(processed_fsl_dir)
-        return dir_contents == self.dti_files
+        ants_dir = self._ants_folder(subject)
+        dir_contents = os.listdir(ants_dir)
+        return dir_contents == self.ants_dti_files
 
     def _is_tensor_saved(self, subject):
         exists = False
@@ -200,10 +200,10 @@ class HcpReader:
         Reads in FSL DTI outputs and convert to be ANTs-friendly 
         """        
         processed_fsl_dir = self._fsl_folder(subject)
-        converted_ants_dir = self._conversion_folder(subject)
+        converted_dir = self._conversion_folder(subject)
 
-        if os.path.isdir(converted_ants_dir):
-            converted_file = set(os.listdir(converted_ants_dir))
+        if os.path.isdir(converted_dir):
+            converted_file = set(os.listdir(converted_dir))
         else:
             converted_file = {}
 
@@ -211,25 +211,29 @@ class HcpReader:
             self.logger.info('converted dti files found for subject {}'.format(subject))
         else:
             self.logger.info('converting dti files for subject {}'.format(subject))
-            if not os.path.isdir(converted_ants_dir):
-                os.makedirs(converted_ants_dir)
+            if not os.path.isdir(converted_dir):
+                os.makedirs(converted_dir)
 
             ants_command_str = \
-                'ImageMath 3 {1}/dtUpper.nii.gz 4DTensorTo3DTensor {0}/fsl_tensor.nii.gz'.format(processed_fsl_dir, converted_ants_dir)
+                'ImageMath 3 {1}/dtUpper.nii.gz 4DTensorTo3DTensor {0}/fsl_tensor.nii.gz' \
+                .format(processed_fsl_dir, converted_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             comps = ['xx', 'xy', 'xz', 'yy', 'yz', 'zz']
             for i in range(len(comps)):
                 ants_command_str = \
-                    'ImageMath 3 {0}/comp_d{1}.nii.gz TensorToVectorComponent {0}/dtUpper.nii.gz {2}'.format(converted_ants_dir, comps[i], i+3)
+                    'ImageMath 3 {0}/comp_d{1}.nii.gz TensorToVectorComponent {0}/dtUpper.nii.gz {2}' \
+                    .format(converted_dir, comps[i], i+3)
                 subprocess.run(ants_command_str, shell=True, check=True)
 
             ants_command_str = \
-                'ImageMath 3 {0}/DT.nii.gz ComponentTo3DTensor {0}/comp_d .nii.gz'.format(converted_ants_dir)
+                'ImageMath 3 {0}/DT.nii.gz ComponentTo3DTensor {0}/comp_d .nii.gz' \
+                .format(converted_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             ants_command_str = \
-                'ImageMath 3 {0}/FA.nii.gz TensorFA {0}/DT.nii.gz'.format(converted_ants_dir)
+                'ImageMath 3 {0}/FA.nii.gz TensorFA {0}/DT.nii.gz' \
+                .format(converted_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
     def register_dti(self, subject):
@@ -237,7 +241,7 @@ class HcpReader:
         Uses ANTs to warp and reorient DTI to template space
         """    
 
-        converted_ants_dir = self._conversion_folder(subject)
+        converted_dir = self._conversion_folder(subject)
         registered_dti_dir = self._reg_folder(subject)
         template_folder = self.template_folder
         template_file = self.template_file
@@ -256,25 +260,27 @@ class HcpReader:
 
             # 1) run ANTS registration
             ants_command_str = \
-                'antsRegistrationSyN.sh -p f -f {0}/FSL_HCP1065_FA_2mm.nii.gz -m {1}/FA.nii.gz -t s -o {2}/FA_reg_' \
-                .format(template_folder, converted_ants_dir, registered_dti_dir)
+                'antsRegistrationSyN.sh -p f -f {0}/{3} -m {1}/FA.nii.gz -t s -o {2}/FA_reg_' \
+                .format(template_folder, converted_dir, registered_dti_dir, template_file)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             # 2) compose a single warp
             ants_command_str = \
-                'antsApplyTransforms -d 3 -i {1}/FA.nii.gz -r {0}/FSL_HCP1065_FA_2mm.nii.gz -t {2}/FA_reg_1Warp.nii.gz ' \
-                '-t {2}/FA_reg_0GenericAffine.mat -o [ {2}/FA_reg_combinedWarp.nii.gz , 1 ]'.format(template_folder, converted_ants_dir, registered_dti_dir)
+                'antsApplyTransforms -d 3 -i {1}/FA.nii.gz -r {0}/{3} -t {2}/FA_reg_1Warp.nii.gz ' \
+                '-t {2}/FA_reg_0GenericAffine.mat -o [ {2}/FA_reg_combinedWarp.nii.gz , 1 ]' \
+                .format(template_folder, converted_dir, registered_dti_dir, template_file)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             # 3) move DT to fixed
             ants_command_str = \
-                'antsApplyTransforms -d 3 -e 2 -i {1}/DT.nii.gz -r {0}/FSL_HCP1065_FA_2mm.nii.gz -t {2}/FA_reg_combinedWarp.nii.gz ' \
-                '-o {2}/DTDeformed.nii.gz'.format(template_folder, converted_ants_dir, registered_dti_dir)
+                'antsApplyTransforms -d 3 -e 2 -i {1}/DT.nii.gz -r {0}/{3} -t {2}/FA_reg_combinedWarp.nii.gz -o {2}/DTDeformed.nii.gz' \
+                .format(template_folder, converted_dir, registered_dti_dir, template_file)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             # 4) reorient warped DT
             ants_command_str = \
-                'ReorientTensorImage 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz'.format(registered_dti_dir)
+                'ReorientTensorImage 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz' \
+                .format(registered_dti_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
     def get_eigen(self, subject):
@@ -302,16 +308,19 @@ class HcpReader:
             def return_eigenvector(indir, dt_image, vec_label, vec_idx, outdir, output):
 
                 ants_command_str = \
-                    'ImageMath 3 {3}/{4}.nii.gz TensorToVector {0}/{1} {2}'.format(indir, dt_image, vec_idx, outdir, vec_label)
+                    'ImageMath 3 {3}/{4}.nii.gz TensorToVector {0}/{1} {2}' \
+                    .format(indir, dt_image, vec_idx, outdir, vec_label)
                 subprocess.run(ants_command_str, shell=True, check=True)
 
                 for i in range(3):
                     ants_command_str = \
-                        'ImageMath 3 {0}/{1}_{2}.nii.gz ExtractVectorComponent {0}/{1}.nii.gz {2}'.format(outdir, vec_label, i)
+                        'ImageMath 3 {0}/{1}_{2}.nii.gz ExtractVectorComponent {0}/{1}.nii.gz {2}' \
+                        .format(outdir, vec_label, i)
                     subprocess.run(ants_command_str, shell=True, check=True)
 
                 ants_command_str = \
-                    'ImageMath 4 {0}/{2} TimeSeriesAssemble 1 0 {0}/{1}_0.nii.gz {0}/{1}_1.nii.gz {0}/{1}_2.nii.gz'.format(outdir, vec_label, output)
+                    'ImageMath 4 {0}/{2} TimeSeriesAssemble 1 0 {0}/{1}_0.nii.gz {0}/{1}_1.nii.gz {0}/{1}_2.nii.gz' \
+                    .format(outdir, vec_label, output)
                 subprocess.run(ants_command_str, shell=True, check=True)
 
             return_eigenvector(registered_dti_dir, 'DTReorientedWarp.nii.gz', 'V1', 2, ants_dir, 'V1Deformed.nii.gz')
@@ -321,20 +330,23 @@ class HcpReader:
 
             # get eigen values
             ants_command_str = \
-                'ImageMath 3 {1}/L1Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 2'.format(registered_dti_dir, ants_dir)
+                'ImageMath 3 {1}/L1Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 2' \
+                .format(registered_dti_dir, ants_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             ants_command_str = \
-                'ImageMath 3 {1}/L2Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 1'.format(registered_dti_dir, ants_dir)
+                'ImageMath 3 {1}/L2Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 1' \
+                .format(registered_dti_dir, ants_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             ants_command_str = \
-                'ImageMath 3 {1}/L3Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 0'.format(registered_dti_dir, ants_dir)
+                'ImageMath 3 {1}/L3Deformed.nii.gz TensorEigenvalue {0}/DTReorientedWarp.nii.gz 0' \
+                .format(registered_dti_dir, ants_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
             # clean up
-            fileList = glob.glob(os.path.join(ants_dir,'*_*.nii.gz'), recursive=False)
-            for filePath in fileList: os.remove(filePath)
+            file_list = glob.glob(os.path.join(ants_dir,'*_*.nii.gz'), recursive=False)
+            for file in file_list: os.remove(file)
             os.remove(os.path.join(ants_dir,'V1.nii.gz'))
             os.remove(os.path.join(ants_dir,'V2.nii.gz'))
             os.remove(os.path.join(ants_dir,'V3.nii.gz'))
