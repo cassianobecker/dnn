@@ -145,7 +145,7 @@ def test(args, model, device, test_loader):
 def main():
 
     batch_size = 2
-    test_batch_size = 4
+    test_batch_size = 2
 
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch HCP Diffusion Example')

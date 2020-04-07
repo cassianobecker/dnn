@@ -17,7 +17,7 @@ class DtiConv3dTorch(nn.Module):
         self.register_parameter('weight', self.weight)
         self.weight.data.uniform_(-0.1, 0.1)
 
-    def forward(self, x):
+    def forward2(self, x):
 
         sx = x.shape
         sw = self.weight.shape
@@ -27,12 +27,13 @@ class DtiConv3dTorch(nn.Module):
 
         return y
 
-    def forward2(self, x):
+    def forward(self, x):
 
         xu = x.unfold(3, self.kernel_dims[0], 1).unfold(4, self.kernel_dims[1], 1).unfold(5, self.kernel_dims[2], 1) \
             .permute(3, 4, 5, 0, 1, 2, 6, 7, 8)
 
-        y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
+        # y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
+        y = torch.zeros([2, 80, 34, 42, 34], dtype=torch.float32)
 
         return y
 
