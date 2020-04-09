@@ -214,6 +214,10 @@ class HcpReader:
             if not os.path.isdir(converted_dir):
                 os.makedirs(converted_dir)
 
+            if os.path.exists(os.path.join(processed_fsl_dir, 'fsl_tensor.hdr')):
+                fslconvert_command_str = 'fslchfiletype NIFTI_GZ {0}/fsl_tensor.*'.format(processed_fsl_dir)
+                subprocess.run(fslconvert_command_str, shell=True, check=True)
+
             ants_command_str = \
                 'ImageMath 3 {1}/dtUpper.nii.gz 4DTensorTo3DTensor {0}/fsl_tensor.nii.gz' \
                 .format(processed_fsl_dir, converted_dir)
