@@ -1,25 +1,5 @@
-import configparser
-import os
 import psutil
-from util.path import get_dir
-
-
-def get_experiment_params(file, name):
-    """
-    Creates a ConfigParser object with parameter info for reading fMRI data.
-    :return: params, a ConfigParser object
-    """
-    experiment_path = get_dir(file)
-
-    params = configparser.ConfigParser()
-    params_furl = os.path.join(experiment_path, 'conf', 'experiment.ini')
-    params.read(params_furl)
-
-    params.add_section('FILE')
-    params.set('FILE', 'experiment_path', experiment_path)
-    params.set('FILE', 'experiment_name', name)
-
-    return params
+import importlib
 
 
 def print_memory():
@@ -32,3 +12,13 @@ def print_memory():
         .format(percent, used, available)
 
     return mem_str
+
+
+def class_for_name(full_class_name):
+
+    module_name, _, class_name = full_class_name.rpartition('.')
+    the_class = getattr(importlib.import_module(module_name), class_name)
+
+    return the_class
+
+
