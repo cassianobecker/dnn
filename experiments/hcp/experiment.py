@@ -80,17 +80,18 @@ def test(args, model, device, test_loader):
 
 
 class Args:
-    pass
+
+    def __init__(self):
+        self.batch_size = int(Config.config['ALGORITHM']['batch_size'])
+        self.test_batch_size = int(Config.config['ALGORITHM']['test_batch_size'])
+        self.epochs = int(Config.config['ALGORITHM']['epochs'])
+        self.lr = float(Config.config['ALGORITHM']['lr'])
+        self.gamma = float(Config.config['ALGORITHM']['gamma'])
 
 
 def main():
 
     args = Args()
-    args.batch_size = int(Config.config['ALGORITHM']['batch_size'])
-    args.test_batch_size = int(Config.config['ALGORITHM']['test_batch_size'])
-    args.epochs = int(Config.config['ALGORITHM']['epochs'])
-    args.lr = float(Config.config['ALGORITHM']['lr'])
-    args.gamma = float(Config.config['ALGORITHM']['gamma'])
 
     torch.manual_seed(1234)
 
@@ -135,7 +136,6 @@ def initialize_config(argv):
         Config.set_config(config_generator.config_products[0])
 
     else:
-
         Config.set_config(sys.argv[1])
 
 

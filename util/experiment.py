@@ -20,5 +20,3 @@ def class_for_name(full_class_name):
     the_class = getattr(importlib.import_module(module_name), class_name)
 
     return the_class
-
-

@@ -21,8 +21,8 @@ Short description here.
   * Save to `~/.aws/credentials` as
     ```
     [default]
-	\\\aws_access_key_id = 
-	\\\aws_secret_access_key = 
+	aws_access_key_id = 
+	aws_secret_access_key = 
     ```
   * Using [CLI](https://aws.amazon.com/cli/), run `aws configure`.
 
@@ -32,12 +32,12 @@ Short description here.
 ### Getting started
 
 ##### MNIST
-To train a simple CNN on MNIST data, run `/experiments/mnist/mnist_cnn_simple.py`.
+To train a simple CNN on MNIST data, run `experiments/mnist/mnist_cnn_simple.py`.
 
 ##### HCP Data
 
-1. To download & process the data, run `experiments/hcp/process_dti.py`. 
-    * List the subjects to download in `experiments/hcp/conf/process/subjects.txt`.
-2. To train and test a CNN on the data, run `experiments/hcp/hcp_dti_cnn.py`.
-    * List the subjects for training and testing in `experiments/hcp/conf/(test|train)/subjects.txt`.
+1. To download & process the data, at the root folder of the project, `python -m experiments.hcp.scripts.process.process_dti`. 
+    * List the subjects to download in `dataset/hcp/scripts/process/conf/subjects.txt`.
+2. To train and test a CNN on the data, at the root folder of the project, run `python -m experiments.hcp.experiment`.
+    * List the subjects for training and testing in `experiments/hcp/conf/(test|train)_subjects.txt`.
     * Make sure that PyCharm is not configured to run `pytest`.
