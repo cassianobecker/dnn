@@ -1,7 +1,7 @@
 # <<< Project >>>
 
 dataset/data
-dataset/hcp/conf/hcp_database.ini
+dataset/hcp/scripts/process/conf/hcp_database.ini
 dataset/hcp/res/hcp_covariates.csv
 
 # <<< PyCharm >>>

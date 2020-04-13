@@ -1,1 +1,0 @@
-wb_command -cifti-export-dense-mapping 351938.aparc.a2009s.32k_fs_LR.dlabel.nii COLUMN -surface CORTEX_LEFT cl2.txt

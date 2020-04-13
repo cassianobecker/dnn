@@ -8,37 +8,40 @@ import nibabel as nib
 import numpy as np
 
 from dataset.hcp.covariates import Covariates
-from dataset.hcp.downloaders import DiffusionDownloader
+from dataset.hcp.downloaders import HcpDiffusionDownloader
 from util.logging import get_logger, set_logger
+from util.config import Config
+from util.path import absolute_path
 
 
 class HcpReader:
 
-    def __init__(self, database_settings, params):
+    def __init__(self):
 
-        log_furl = os.path.join(params['FILE']['experiment_path'], 'log', 'downloader.log')
-        set_logger('HcpReader', database_settings['LOGGING']['dataloader_level'], log_furl)
+        log_furl = os.path.join(Config.config['OUTPUTS']['base_path'], 'log', 'downloader.log')
+        set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.processing_folder = database_settings['DIRECTORIES']['local_processing_directory']
+        self.processing_folder = Config.config['DATABASE']['local_processing_directory']
 
         if not os.path.isdir(self.processing_folder):
             os.makedirs(self.processing_folder)
 
-        self.mirror_folder = database_settings['DIRECTORIES']['local_server_directory']
+        self.mirror_folder = Config.config['DATABASE']['local_server_directory']
 
-        self.delete_nii = strtobool(database_settings['DIRECTORIES']['delete_after_downloading'])
-        self.dif_downloader = DiffusionDownloader(database_settings)
-        nib.imageglobals.logger = set_logger('Nibabel', database_settings['LOGGING']['nibabel_level'], log_furl)
+        self.delete_nii = strtobool(Config.config['DATABASE']['delete_after_downloading'])
 
-        self.field = params['COVARIATES']['field']
+        self.dif_downloader = HcpDiffusionDownloader()
+        nib.imageglobals.logger = set_logger('Nibabel', Config.config['LOGGING']['nibabel_level'], log_furl)
+
+        self.field = Config.config['COVARIATES']['field']
         self.covariates = Covariates()
 
         self.dti_files = {'fsl_FA.nii.gz', 'fsl_L1.nii.gz', 'fsl_L2.nii.gz', 'fsl_L3.nii.gz', 'fsl_MD.nii.gz',
                           'fsl_MO.nii.gz',  'fsl_S0.nii.gz',  'fsl_V1.nii.gz',  'fsl_V2.nii.gz',  'fsl_V3.nii.gz',
                           'fsl_tensor.nii.gz'}
 
-        self.template_folder = database_settings['DIRECTORIES']['template_directory']
+        self.template_folder = 'dataset/hcp/res/templates'
         self.template_file = 'FMRIB58_FA_2mm.nii.gz'
         self.mask_file = 'FMRIB58_FA-skeleton_2mm.nii.gz'
 
@@ -55,7 +58,7 @@ class HcpReader:
 
     def load_subject_list(self, list_url):
         self.logger.info('loading subjects from ' + list_url)
-        with open(list_url, 'r') as f:
+        with open(absolute_path(list_url), 'r') as f:
             subjects = [s.strip() for s in f.readlines()]
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
         return subjects
@@ -213,6 +216,10 @@ class HcpReader:
             self.logger.info('converting dti files for subject {}'.format(subject))
             if not os.path.isdir(converted_dir):
                 os.makedirs(converted_dir)
+
+            if os.path.exists(os.path.join(processed_fsl_dir, 'fsl_tensor.hdr')):
+                fslconvert_command_str = 'fslchfiletype NIFTI_GZ {0}/fsl_tensor.*'.format(processed_fsl_dir)
+                subprocess.run(fslconvert_command_str, shell=True, check=True)
 
             ants_command_str = \
                 'ImageMath 3 {1}/dtUpper.nii.gz 4DTensorTo3DTensor {0}/fsl_tensor.nii.gz' \

@@ -9,6 +9,14 @@ def get_root():
     return os.path.split(root_dir)[0]
 
 
+def absolute_path(relative_path):
+    return os.path.join(get_root(), relative_path)
+
+
+def append_path(module, relative_path):
+    return os.path.join(get_dir(module), relative_path)
+
+
 def get_dir(module):
     """
     gets the module's current directory
