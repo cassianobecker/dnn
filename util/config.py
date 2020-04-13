@@ -121,6 +121,10 @@ class ConfigProductGenerator:
 
         results_base_path = self.config['OUTPUTS']['base_path']
 
+        if not os.path.exists(results_base_path):
+            raise FileNotFoundError(f"Top folder for results: '{results_base_path}' does no exist")
+
+
         current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
         results_path = os.path.join(results_base_path, experiment_name, current_time)
         config_products_path = os.path.join(results_path, 'config_products')
