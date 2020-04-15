@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 from dataset.hcp.torch_data import HcpDataset
-from util.config import Config
+from fwk.config import Config
 from util.path import append_path
 
 

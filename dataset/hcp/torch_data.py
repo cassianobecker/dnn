@@ -3,7 +3,7 @@ import torch.utils.data
 
 from dataset.hcp.hcp_data import HcpReader, SkipSubjectException
 from util.logging import get_logger, set_logger
-from util.config import Config
+from fwk.config import Config
 
 
 class HcpDataset(torch.utils.data.Dataset):
@@ -27,7 +27,13 @@ class HcpDataset(torch.utils.data.Dataset):
         self.reader = HcpReader()
 
         subject_file_url = Config.config['SUBJECTS'][f'{regime}_subjects_file']
-        self.subjects = self.reader.load_subject_list(subject_file_url)
+
+        if 'max_subjects' in Config.config['SUBJECTS'].keys():
+            max_subjects = Config.config['SUBJECTS']['max_subjects']
+        else:
+            max_subjects = None
+
+        self.subjects = self.reader.load_subject_list(subject_file_url, max_subjects=max_subjects)
 
     def __len__(self):
         return len(self.subjects)

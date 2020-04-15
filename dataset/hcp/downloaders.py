@@ -2,7 +2,7 @@ import os
 import boto3
 
 from util.logging import get_logger, set_logger
-from util.config import Config
+from fwk.config import Config
 
 
 class HcpDiffusionDownloader:

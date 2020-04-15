@@ -7,9 +7,9 @@ import torch
 import torch.utils.data
 
 from util.torch import seed_everything
-from util.experiment import get_experiment_params
+from fwk.experiment import get_experiment_params
 
-from dataset.hcp.torch_data import HcpDataset, HcpDataLoader
+from metrics.dataset import HcpDataset, HcpDataLoader
 
 
 def experiment(params, args):

@@ -10,7 +10,7 @@ import numpy as np
 from dataset.hcp.covariates import Covariates
 from dataset.hcp.downloaders import HcpDiffusionDownloader
 from util.logging import get_logger, set_logger
-from util.config import Config
+from fwk.config import Config
 from util.path import absolute_path
 
 
@@ -56,10 +56,12 @@ class HcpReader:
         self.ants_dti_files = {'V1Deformed.nii.gz', 'L1Deformed.nii.gz', 'L3Deformed.nii.gz',
                                 'V3Deformed.nii.gz', 'V2Deformed.nii.gz', 'L2Deformed.nii.gz'}
 
-    def load_subject_list(self, list_url):
+    def load_subject_list(self, list_url, max_subjects=None):
         self.logger.info('loading subjects from ' + list_url)
         with open(absolute_path(list_url), 'r') as f:
             subjects = [s.strip() for s in f.readlines()]
+            subjects = subjects[:int(max_subjects)] if max_subjects is not None else subjects
+
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
         return subjects
 

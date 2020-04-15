@@ -6,10 +6,11 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from dataset.hcp.torch_data import HcpDataset, HcpDataLoader
-from util.experiment import class_for_name
-from util.config import Config, ConfigProductGenerator
+from metrics.dataset import HcpDataset, HcpDataLoader
+from util.lang import class_for_name
+from fwk.config import Config, ConfigProductGenerator
 from util.path import append_path
+from fwk.metrics import MetricsHandler
 
 
 def train(args, model, device, train_loader, optimizer, epoch):
@@ -39,6 +40,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
         # correct += pred.eq(targets.view_as(pred)).sum().item()
         correct += pred.eq(targets.view_as(pred)).sum().item()
 
+        MetricsHandler.collect_metrics(locals(), 'after_batch')
+
     train_loss /= len(train_loader.dataset)
 
     print('\nTrain set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
@@ -49,6 +52,8 @@ def train(args, model, device, train_loader, optimizer, epoch):
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(dti_tensors), len(train_loader.dataset),
                 100. * batch_idx / len(train_loader), loss.item()))
+
+
 
 
 def test(args, model, device, test_loader):
@@ -91,6 +96,9 @@ class Args:
 
 def main():
 
+    MetricsHandler.add_metric('util.torch_metrics.GradientMetrics', 'after_batch')
+    MetricsHandler.add_metric('util.torch_metrics.SubjectMetrics', 'before_experiment')
+
     args = Args()
 
     torch.manual_seed(1234)
@@ -110,6 +118,9 @@ def main():
     optimizer = optim.Adadelta(model.parameters(), lr=args.lr)
 
     scheduler = StepLR(optimizer, step_size=1, gamma=args.gamma)
+
+    MetricsHandler.collect_metrics(locals(), 'before_experiment')
+
 
     for epoch in range(1, args.epochs + 1):
 

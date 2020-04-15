@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from sklearn.metrics import confusion_matrix, accuracy_score
 from util.logging import set_logger, get_logger
-from util.experiment import print_memory
+from fwk.experiment import print_memory
 
 
 class Runner:
