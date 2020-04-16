@@ -10,4 +10,4 @@ CUDA_VISIBLE_DEVICES=`get_CUDA_VISIBLE_DEVICES` || exit
 echo CUDA_VISIBLE_DEVICES: $CUDA_VISIBLE_DEVICES
 export CUDA_VISIBLE_DEVICES
 
-python -c "from fwk.experiment import Experiment; Experiment.run('${1}')"
+python -u -c "from fwk.experiment import Experiment; Experiment.run('${1}')"

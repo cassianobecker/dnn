@@ -1,8 +1,10 @@
 from fwk.config import ConfigProductGenerator
 import sys
+import os
 import subprocess
 from fwk.experiment import Experiment
 from util.path import absolute_path
+
 
 
 class LocalExperimentRunner:
@@ -17,7 +19,8 @@ class CbicaExperimentRunner:
     @staticmethod
     def run(config_url):
         print(f'Using CBICA Runner for configuration {config_url}.')
-        process_str = f'fwk/scripts/cbica.sh {config_url}'
+        log_url = os.path.join(os.path.dirname(config_url), 'log')
+        process_str = f'fwk/scripts/cbica.sh {config_url} {log_url}'
         subprocess.Popen(process_str, shell=True)
 
 
