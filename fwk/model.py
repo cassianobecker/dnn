@@ -1,10 +1,9 @@
 import torch
 import os
+from fwk.config import Config
 
 
 class ModelHandler:
-
-    results_path = None
 
     @classmethod
     def load_model(cls, epoch=None):
@@ -41,6 +40,7 @@ class ModelHandler:
     def _url_components_for_model(cls, epoch):
 
         model_name = 'model.pt' if epoch is None else f'model_{epoch}.pt'
-        model_path = os.path.join(cls.results_path, 'model')
+        results_path = Config.config['EXPERIMENT']['results_path']
+        model_path = os.path.join(results_path, 'model')
 
         return model_path, model_name

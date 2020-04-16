@@ -13,11 +13,11 @@ class HcpDataset(torch.utils.data.Dataset):
 
     def __init__(self, device, regime, coarsen=None):
 
-        base_path = Config.config['OUTPUTS']['base_path']
+        results_path = Config.config['EXPERIMENT']['results_path']
 
-        if not os.path.exists(os.path.join(base_path, 'log')):
-            os.mkdir(os.path.join(base_path, 'log'))
-        log_furl = os.path.join(base_path, 'log', 'downloader.log')
+        if not os.path.exists(os.path.join(results_path, 'log')):
+            os.mkdir(os.path.join(results_path, 'log'))
+        log_furl = os.path.join(results_path, 'log', 'downloader.log')
 
         set_logger('HcpDataset', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpDataset')

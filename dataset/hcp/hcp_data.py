@@ -18,14 +18,14 @@ class HcpReader:
 
     def __init__(self):
 
-        log_furl = os.path.join(Config.config['OUTPUTS']['base_path'], 'log', 'downloader.log')
+        log_furl = os.path.join(Config.config['EXPERIMENT']['results_path'], 'log', 'downloader.log')
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
         self.processing_folder = Config.config['DATABASE']['local_processing_directory']
 
         if not os.path.isdir(self.processing_folder):
-            os.makedirs(self.processing_folder)
+            os.makedirs(self.processing_folder, exist_ok=True)
 
         self.mirror_folder = Config.config['DATABASE']['local_server_directory']
 

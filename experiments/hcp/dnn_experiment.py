@@ -14,7 +14,7 @@ from util.lang import class_for_name
 
 class BatchTrain:
 
-    def __init__(self, results_path):
+    def __init__(self):
         self.epochs = None
         self.model = None
         self.loss = None
@@ -22,7 +22,6 @@ class BatchTrain:
         self.scheduler = None
         self.device = None
         self.data_loaders = dict()
-        self.results_path = results_path
 
     def execute(self):
 

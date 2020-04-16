@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim.lr_scheduler import StepLR
 
-from metrics.dataset import HcpDataset, HcpDataLoader
+from dataset.hcp.torch_data import HcpDataset, HcpDataLoader
 from util.lang import class_for_name
 from fwk.config import Config, ConfigProductGenerator
 from util.path import append_path
