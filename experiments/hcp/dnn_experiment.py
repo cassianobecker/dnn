@@ -35,8 +35,8 @@ class BatchTrain:
         for epoch in range(self.epochs):
 
             MetricsHandler.collect_metrics(locals(), 'BEFORE_EPOCH')
-            self.train_batch(epoch, self.model, self.device, self.loss, self.optimizer, self.data_loaders)
-            self.test_batch(epoch, self.model, self.device, self.loss, self.optimizer, self.data_loaders)
+            self.train_batch(epoch)
+            self.test_batch(epoch)
             MetricsHandler.collect_metrics(locals(), 'AFTER_EPOCH')
 
             if to_bool(Config.config['OUTPUTS']['save_model']) is True:
@@ -86,49 +86,36 @@ class BatchTrain:
             gamma=float(Config.config['ALGORITHM']['gamma'])
         )
 
-    @staticmethod
-    def train_batch(epoch, model, device, loss, optimizer, data_loaders):
+    def train_batch(self, epoch):
 
-        model.train()
+        self.model.train()
 
-        correct = 0
-
-        for batch_idx, (dti_tensors, targets, subjects) in enumerate(data_loaders['train']):
+        for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
 
             MetricsHandler.collect_metrics(locals(), 'BEFORE_TRAIN_BATCH')
 
-            dti_tensors, targets = dti_tensors.to(device), targets.to(device).type(torch.long)
+            dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
 
-            optimizer.zero_grad()
-            output = model(dti_tensors)
-            loss = F.nll_loss(output, targets)
+            self.optimizer.zero_grad()
+            outputs = self.model(dti_tensors)
+            loss = F.nll_loss(outputs, targets)
             loss.backward()
-            optimizer.step()
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += pred.eq(targets.view_as(pred)).sum().item()
+            self.optimizer.step()
 
             MetricsHandler.collect_metrics(locals(), 'AFTER_TRAIN_BATCH')
 
-    @staticmethod
-    def test_batch(epoch, model, device, loss, optimizer, data_loaders):
+    def test_batch(self, epoch):
 
-        model.eval()
-
-        test_loss = 0
-        correct = 0
+        self.model.eval()
 
         with torch.no_grad():
 
-            for batch_idx, (dti_tensors, targets, subjects) in enumerate(data_loaders['test']):
+            for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
 
                 MetricsHandler.collect_metrics(locals(), 'BEFORE_TEST_BATCH')
 
-                dti_tensors, targets = dti_tensors.to(device), targets.to(device).type(torch.long)
+                dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
 
-                output = model(dti_tensors)
-
-                test_loss += F.nll_loss(output, targets, reduction='sum').item()
-                pred = output.argmax(dim=1, keepdim=True)
-                correct += pred.eq(targets.view_as(pred)).sum().item()
+                outputs = self.model(dti_tensors)
 
                 MetricsHandler.collect_metrics(locals(), 'AFTER_TEST_BATCH')

@@ -34,7 +34,7 @@ class Metric:
 
 class MetricsHandler:
 
-    metrics = dict()
+    metrics = list()
 
     @classmethod
     def register_all_metrics(cls, metrics_url):
@@ -45,28 +45,21 @@ class MetricsHandler:
         config.read(absolute_path(metrics_url))
 
         for session in config.keys():
-            event_type = session
 
             for key in config[session]:
-
                 metrics_class_name = key
-                cls.add_metric(metrics_class_name, event_type)
+                cls.add_metric(metrics_class_name)
 
     @classmethod
-    def add_metric(cls, metric_class_name, event_type):
+    def add_metric(cls, metric_class_name):
 
         metric = class_for_name(metric_class_name)()
 
-        if event_type not in cls.metrics.keys():
-            cls.metrics[event_type] = list()
-
-        cls.metrics[event_type].append(metric)
+        cls.metrics.append(metric)
 
     @classmethod
     def collect_metrics(cls, local_variables, event_type):
 
-        if event_type in cls.metrics.keys():
-            for metric in cls.metrics[event_type]:
-                metric.extract_metric(local_variables)
-                metric.print_metric()
-
+        for metric in cls.metrics:
+            metric.extract_metric(local_variables, event_type)
+            metric.print_metric(event_type)

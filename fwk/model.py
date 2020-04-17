@@ -16,8 +16,8 @@ class ModelHandler:
     @classmethod
     def save_model(cls, model, epoch):
 
-        model_url = cls._make_path_for_model(epoch)
-        torch.save(model.state_dict(), model_url)
+        # model_url = cls._make_path_for_model(epoch)
+        # torch.save(model.state_dict(), model_url)
         model_url_latest = cls._make_path_for_model(epoch=None)
         torch.save(model.state_dict(), model_url_latest)
 

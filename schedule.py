@@ -6,7 +6,6 @@ from fwk.experiment import Experiment
 from util.path import absolute_path
 
 
-
 class LocalExperimentRunner:
     @staticmethod
     def run(config_url):
