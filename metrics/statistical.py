@@ -11,58 +11,47 @@ class ClassificationAccuracy(Metric):
         self.total = None
         self.predicted = None
         self.targets = None
+        self.accuracy = None
+        self.confusion_matrix = None
+        self.epoch = None
 
-    def extract_metric(self, local_variables: dict, event_type):
+    def on_after_train_batch(self, local_variables):
+        outputs = local_variables['outputs'].cpu()
+        targets = local_variables['targets'].cpu()
 
-        if event_type == 'AFTER_TRAIN_BATCH':
+        predicted = outputs.argmax(dim=1, keepdim=True).cpu()
+        self.correct += predicted.eq(targets.view_as(predicted)).sum().item()
+        self.total += predicted.shape[0]
+        self.predicted.extend(list(np.squeeze(predicted.numpy())))
+        self.targets.extend(list(targets.numpy()))
 
-            outputs = local_variables['outputs']
-            targets = local_variables['targets']
+    def on_before_epoch(self, local_variables):
+        self.correct = 0
+        self.total = 0
+        self.predicted = []
+        self.targets = []
 
-            predicted = outputs.argmax(dim=1, keepdim=True)
-            self.correct += predicted.eq(targets.view_as(predicted)).sum().item()
-            self.total += predicted.shape[0]
-            self.predicted.extend(list(np.squeeze(predicted.numpy())))
-            self.targets.extend(list(targets.numpy()))
+    def on_after_epoch(self, local_variables):
+        self.accuracy = self.correct/self.total
+        self.confusion_matrix = sklearn.metrics.confusion_matrix(self.targets, self.predicted)
+        self.epoch = local_variables['epoch']
+        self.print_metric()
 
-        if event_type == 'BEFORE_EPOCH':
-            self.correct = 0
-            self.total = 0
-            self.predicted = []
-            self.targets = []
+    def text_record(self):
+        accuracy_str = f'\naccuracy:\n{100*self.accuracy:.2f}% ({self.correct} of {self.total})\n'
+        confusion_str = f'\nconfusion matrix:\n{np.array_str(self.confusion_matrix)}\n'
+        return accuracy_str + confusion_str
 
-    def print_metric(self, event_type):
+    def numpy_record(self, records=None):
 
-        if event_type == 'AFTER_EPOCH':
-            accuracy_str = f'==> accuracy: {100*self.correct/self.total:.2f}%, correct: {self.correct}, total: {self.total}'
-            print(accuracy_str)
-            print('==> confusion matrix:')
-            print(sklearn.metrics.confusion_matrix(self.targets, self.predicted))
+        if 'accuracy' not in records.keys():
+            records['accuracy'] = list()
 
+        records['accuracy'].append(self.accuracy)
 
-class ConfusionMatrix(Metric):
+        if 'confusion_matrix' not in records.keys():
+            records['confusion_matrix'] = list()
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.variable = None
+        records['confusion_matrix'].append(self.confusion_matrix)
 
-    def extract_metric(self, local_variables: dict, event_type):
-        pass
-
-    def print_metric(self, event_type):
-        pass
-
-
-class SpecificMetric(Metric):
-
-    def __init__(self) -> None:
-        super().__init__()
-        self.variable = None
-
-    def extract_metric(self, local_variables: dict, event_type):
-
-        argument = self.get_variable(local_variables, 'variable_name')
-        self.variable = argument
-
-    def print_metric(self, event_type):
-        pass
+        return records

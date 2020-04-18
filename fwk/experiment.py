@@ -20,7 +20,7 @@ class Experiment:
         Config.config['EXPERIMENT']['results_path'] = Experiment._results_url(config_url)
 
         # register the metrics handler
-        MetricsHandler.register_all_metrics(Config.config['METRICS']['metrics_url'])
+        MetricsHandler.register_metrics()
 
         # runs experiment
         experiment = class_for_name(Config.config['EXPERIMENT']['experiment_class_name'])

@@ -25,26 +25,28 @@ class BatchTrain:
 
     def execute(self):
 
-        MetricsHandler.collect_metrics(locals(), 'BEFORE_SETUP')
+        MetricsHandler.dispatch_event(locals(), 'before_setup')
+
         self.setup()
-        MetricsHandler.collect_metrics(locals(), 'AFTER_SETUP')
+
+        MetricsHandler.dispatch_event(locals(), 'after_setup')
 
         if to_bool(Config.config['OUTPUTS']['load_model']) is True:
             self.model = ModelHandler.load_model(epoch=1)
 
         for epoch in range(self.epochs):
 
-            MetricsHandler.collect_metrics(locals(), 'BEFORE_EPOCH')
+            MetricsHandler.dispatch_event(locals(), 'before_epoch')
+
             self.train_batch(epoch)
             self.test_batch(epoch)
-            MetricsHandler.collect_metrics(locals(), 'AFTER_EPOCH')
+
+            MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
             if to_bool(Config.config['OUTPUTS']['save_model']) is True:
                 ModelHandler.save_model(self.model, epoch)
 
-        MetricsHandler.collect_metrics(locals(), 'BEFORE_TEARDOWN')
         self._teardown()
-        MetricsHandler.collect_metrics(locals(), 'AFTER_TEARDOWN')
 
     def _teardown(self):
         pass
@@ -92,7 +94,7 @@ class BatchTrain:
 
         for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
 
-            MetricsHandler.collect_metrics(locals(), 'BEFORE_TRAIN_BATCH')
+            MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
             dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
 
@@ -102,7 +104,7 @@ class BatchTrain:
             loss.backward()
             self.optimizer.step()
 
-            MetricsHandler.collect_metrics(locals(), 'AFTER_TRAIN_BATCH')
+            MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
     def test_batch(self, epoch):
 
@@ -112,10 +114,10 @@ class BatchTrain:
 
             for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
 
-                MetricsHandler.collect_metrics(locals(), 'BEFORE_TEST_BATCH')
+                MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
                 dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)
 
-                MetricsHandler.collect_metrics(locals(), 'AFTER_TEST_BATCH')
+                MetricsHandler.dispatch_event(locals(), 'after_test_batch')
