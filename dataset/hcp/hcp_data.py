@@ -41,9 +41,9 @@ class HcpReader:
                           'fsl_MO.nii.gz',  'fsl_S0.nii.gz',  'fsl_V1.nii.gz',  'fsl_V2.nii.gz',  'fsl_V3.nii.gz',
                           'fsl_tensor.nii.gz'}
 
-        self.template_folder = 'dataset/hcp/res/templates'
-        self.template_file = 'FMRIB58_FA_2mm.nii.gz'
-        self.mask_file = 'FMRIB58_FA-skeleton_2mm.nii.gz'
+        self.template_folder = Config.config['TEMPLATE']['folder']
+        self.template_file = Config.config['TEMPLATE']['template']
+        self.mask_file = Config.config['TEMPLATE']['mask']
 
         self.converted_dti_files = {'comp_dxz.nii.gz', 'FA.nii.gz', 'comp_dxx.nii.gz',
                                     'comp_dyz.nii.gz', 'comp_dzz.nii.gz', 'comp_dyy.nii.gz',
