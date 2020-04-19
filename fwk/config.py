@@ -8,19 +8,19 @@ class Config:
 
     config = None
 
-    @staticmethod
-    def set_config_from_url(config_url):
+    @classmethod
+    def set_config_from_url(cls, config_url):
         config = configparser.ConfigParser()
         config.read(config_url)
-        Config.config = config
+        cls.config = config
 
-    @staticmethod
-    def set_config(config):
-        Config.config = config
+    @classmethod
+    def set_config(cls, config):
+        cls.config = config
 
-    @staticmethod
-    def get_config():
-        return Config.config
+    @classmethod
+    def get_config(cls):
+        return cls.config
 
 
 class ConfigProductGenerator:
@@ -38,9 +38,7 @@ class ConfigProductGenerator:
 
         self.config_products = []
         self.config_product_urls = []
-
-        self._config_products_path = None
-
+        self.results_path = None
         self.generate_config_products()
 
     def generate_config_products(self):
@@ -92,49 +90,63 @@ class ConfigProductGenerator:
 
     def _create_config_products(self, base_config, all_config_lists):
 
-        for (k, config_key_combinations) in enumerate(product(*all_config_lists)):
+        if len(all_config_lists) == 0:
+            self.config_products.append(base_config)
 
-            config_product = configparser.ConfigParser()
+        else:
 
-            for config_for_key in config_key_combinations:
-                config_product.read_dict(config_for_key)
+            for (k, config_key_combinations) in enumerate(product(*all_config_lists)):
 
-            config_product.read_dict(base_config)
+                config_product = configparser.ConfigParser()
 
-            self.config_products.append(config_product)
+                for config_for_key in config_key_combinations:
+                    config_product.read_dict(config_for_key)
 
-    def save_config_products(self,  experiment_name):
+                config_product.read_dict(base_config)
 
-        self._config_products_path = self._make_config_paths(experiment_name)
+                self.config_products.append(config_product)
+
+    def save_config_products(self):
+
+        self._make_results_path()
 
         for (k, config_product) in enumerate(self.config_products):
 
-            file_name = f'{k + 1}' + '.ini'
-            file_url = os.path.join(self._config_products_path, file_name)
+            config_product_path = self._make_config_product_path(k)
+
+            file_name = f'args' + '.ini'
+            file_url = os.path.join(config_product_path, file_name)
 
             self.config_product_urls.append(file_url)
 
             with open(file_url, 'w') as config_file:
                 config_product.write(config_file)
 
-    def _make_config_paths(self, experiment_name):
+    def _make_results_path(self):
 
-        results_base_path = self.config['OUTPUTS']['base_path']
+        results_base_path = os.path.expanduser(self.config['OUTPUTS']['base_path'])
+        experiment_short_name = self.config['EXPERIMENT']['short_name']
+
+        os.makedirs(results_base_path, exist_ok=True)
 
         current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
-        results_path = os.path.join(results_base_path, experiment_name, current_time)
-        config_products_path = os.path.join(results_path, 'config_products')
 
-        os.makedirs(config_products_path)
+        self.results_path = os.path.join(results_base_path, experiment_short_name, current_time)
 
-        return config_products_path
+    def _make_config_product_path(self, k):
+
+        config_product_path = os.path.join(self.results_path, f'config_product_{k + 1}')
+
+        os.makedirs(config_product_path)
+
+        return config_product_path
 
 
 def _test_save_configs():
 
     config_url = 'test/args.ini'
     config_generator = ConfigProductGenerator(config_url)
-    config_generator.save_config_products(experiment_name='dnn_hcp')
+    config_generator.save_config_products()
 
     config_product_index = 4
     config_product_url = config_generator.config_product_urls[config_product_index]
@@ -145,4 +157,3 @@ def _test_save_configs():
 
 if __name__ == '__main__':
     _test_save_configs()
-

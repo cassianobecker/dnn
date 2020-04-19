@@ -1,18 +1,18 @@
 from __future__ import print_function
 
-from dataset.hcp.torch_data import HcpDataset
-from util.config import Config
+from dataset.hcp.dwi import HcpProcessor
+from fwk.config import Config
 from util.path import append_path
 
 
 def main():
 
-    process_set = HcpDataset('cpu', 'process')
+    processor = HcpProcessor()
 
-    for subject in process_set.subjects:
+    for subject in processor.subjects:
         print('processing subject {}'.format(subject))
         try:
-            process_set.reader.process_subject(subject, delete_folders=False)
+            processor.process_subject(subject, delete_folders=False)
         except Exception as e:
             print(e)
 

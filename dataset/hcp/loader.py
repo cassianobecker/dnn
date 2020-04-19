@@ -1,23 +1,23 @@
 import os
 import torch.utils.data
 
-from dataset.hcp.hcp_data import HcpReader, SkipSubjectException
+from dataset.hcp.reader import HcpReader, SkipSubjectException
 from util.logging import get_logger, set_logger
-from util.config import Config
+from fwk.config import Config
 
 
 class HcpDataset(torch.utils.data.Dataset):
     """
-    A PyTorch Dataset to host and process diffusion data
+    A PyTorch Dataset to host and dti diffusion data
     """
 
     def __init__(self, device, regime, coarsen=None):
 
-        base_path = Config.config['OUTPUTS']['base_path']
+        results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
-        if not os.path.exists(os.path.join(base_path, 'log')):
-            os.mkdir(os.path.join(base_path, 'log'))
-        log_furl = os.path.join(base_path, 'log', 'downloader.log')
+        if not os.path.exists(os.path.join(results_path, 'log')):
+            os.mkdir(os.path.join(results_path, 'log'))
+        log_furl = os.path.join(results_path, 'log', 'downloader.log')
 
         set_logger('HcpDataset', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpDataset')
@@ -27,7 +27,13 @@ class HcpDataset(torch.utils.data.Dataset):
         self.reader = HcpReader()
 
         subject_file_url = Config.config['SUBJECTS'][f'{regime}_subjects_file']
-        self.subjects = self.reader.load_subject_list(subject_file_url)
+
+        if 'max_subjects' in Config.config['SUBJECTS'].keys():
+            max_subjects = Config.config['SUBJECTS']['max_subjects']
+        else:
+            max_subjects = None
+
+        self.subjects = self.reader.load_subject_list(subject_file_url, max_subjects=max_subjects)
 
     def __len__(self):
         return len(self.subjects)

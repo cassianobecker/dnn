@@ -7,41 +7,41 @@ import shutil
 import nibabel as nib
 import numpy as np
 
-from dataset.hcp.covariates import Covariates
 from dataset.hcp.downloaders import HcpDiffusionDownloader
 from util.logging import get_logger, set_logger
-from util.config import Config
-from util.path import absolute_path
+from fwk.config import Config
+from util.path import absolute_path, is_project_in_cbica
 
 
-class HcpReader:
+class HcpProcessor:
 
     def __init__(self):
 
-        log_furl = os.path.join(Config.config['OUTPUTS']['base_path'], 'log', 'downloader.log')
+        self.processing_folder = os.path.expanduser(Config.config['DATABASE']['local_processing_directory'])
+        if not os.path.isdir(self.processing_folder):
+            os.makedirs(self.processing_folder, exist_ok=True)
+
+        log_furl = os.path.join(self.processing_folder, 'log', 'downloader.log')
+        if not os.path.isdir(log_furl):
+            os.makedirs(os.path.join(self.processing_folder, 'log'), exist_ok=True)
+
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.processing_folder = Config.config['DATABASE']['local_processing_directory']
-
-        if not os.path.isdir(self.processing_folder):
-            os.makedirs(self.processing_folder)
-
-        self.mirror_folder = Config.config['DATABASE']['local_server_directory']
+        self.mirror_folder = self._get_mirror_folder()
 
         self.delete_nii = strtobool(Config.config['DATABASE']['delete_after_downloading'])
 
-        self.dif_downloader = HcpDiffusionDownloader()
-        nib.imageglobals.logger = set_logger('Nibabel', Config.config['LOGGING']['nibabel_level'], log_furl)
+        self.subjects = self.load_subject_list()
 
-        self.field = Config.config['COVARIATES']['field']
-        self.covariates = Covariates()
+        self.downloader = HcpDiffusionDownloader()
+        nib.imageglobals.logger = set_logger('Nibabel', Config.config['LOGGING']['nibabel_level'], log_furl)
 
         self.dti_files = {'fsl_FA.nii.gz', 'fsl_L1.nii.gz', 'fsl_L2.nii.gz', 'fsl_L3.nii.gz', 'fsl_MD.nii.gz',
                           'fsl_MO.nii.gz',  'fsl_S0.nii.gz',  'fsl_V1.nii.gz',  'fsl_V2.nii.gz',  'fsl_V3.nii.gz',
                           'fsl_tensor.nii.gz'}
 
-        self.template_folder = Config.config['TEMPLATE']['folder']
+        self.template_folder = absolute_path(Config.config['TEMPLATE']['folder'])
         self.template_file = Config.config['TEMPLATE']['template']
         self.mask_file = Config.config['TEMPLATE']['mask']
 
@@ -56,10 +56,30 @@ class HcpReader:
         self.ants_dti_files = {'V1Deformed.nii.gz', 'L1Deformed.nii.gz', 'L3Deformed.nii.gz',
                                 'V3Deformed.nii.gz', 'V2Deformed.nii.gz', 'L2Deformed.nii.gz'}
 
-    def load_subject_list(self, list_url):
+    @staticmethod
+    def _get_mirror_folder():
+
+        if is_project_in_cbica():
+            local_server_directory = '/cbica/projects/HCP_Data_Releases'
+        else:
+            local_server_directory = os.path.expanduser(Config.config['DATABASE']['local_server_directory'])
+
+        return local_server_directory
+
+    def load_subject_list(self):
+
+        list_url = Config.config['SUBJECTS']['process_subjects_file']
+
+        if 'max_subjects' in Config.config['SUBJECTS'].keys():
+            max_subjects = Config.config['SUBJECTS']['max_subjects']
+        else:
+            max_subjects = None
+
         self.logger.info('loading subjects from ' + list_url)
         with open(absolute_path(list_url), 'r') as f:
             subjects = [s.strip() for s in f.readlines()]
+            subjects = subjects[:int(max_subjects)] if max_subjects is not None else subjects
+
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
         return subjects
 
@@ -170,7 +190,7 @@ class HcpReader:
         dif = {}
         for fname in fnames:
             furl = os.path.join(self._diffusion_dir(subject), fname)
-            self.dif_downloader.load(furl, subject)
+            self.downloader.load(furl, subject)
         self.logger.debug("done")
         return dif
 
@@ -380,11 +400,3 @@ class HcpReader:
             bvals = nib.load(bvals_file).get_fdata()
             dti_tensor = dti_tensor + np.einsum('abc,abci,abcj->ijabc', bvals, bvecs, bvecs)
         return dti_tensor
-
-    def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject).argmin()
-
-
-class SkipSubjectException(Exception):
-    def __init(self, msg):
-        super(SkipSubjectException, self).__init__(msg)

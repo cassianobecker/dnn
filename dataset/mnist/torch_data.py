@@ -1,5 +1,5 @@
 import torch
-from dataset.mnist.data import load_mnist
+from metrics.dataset import load_mnist
 import torch.utils.data.dataset
 
 

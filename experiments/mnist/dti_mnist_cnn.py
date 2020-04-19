@@ -8,7 +8,7 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
 from nn.DtiConv3d import DtiConv3dTorch
-from dataset.mnist.dti_mnist import batch_tensor_to_3dti
+from metrics.dataset import batch_tensor_to_3dti
 
 
 class Net(nn.Module):

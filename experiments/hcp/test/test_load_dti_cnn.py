@@ -7,15 +7,15 @@ import torch
 import torch.utils.data
 
 from util.torch import seed_everything
-from util.experiment import get_experiment_params
+from fwk.experiment import get_experiment_params
 
-from dataset.hcp.torch_data import HcpDataset, HcpDataLoader
+from metrics.dataset import HcpDataset, HcpDataLoader
 
 
 def experiment(params, args):
     """
     Sets up the experiment environment (loggers, data loaders, model, optimizer and scheduler) and initiates the
-    train/test process for the model.
+    train/test dti for the model.
     :param args: keyword arguments from main() as parameters for the experiment
     :return: None
     """
