@@ -12,26 +12,28 @@ Short description here.
   * Open PyCharm. Open `dnn` directory as a project.
   * Then, select "Preferences" > "Project: dnn" > ⚙️ > "Add..." > "Conda Environment" > "Existing environment" > "/Users/username/anaconda3/envs/dti-enn/bin/python"
  
- ##### HCP database 
-* Create a folder 'hcp' in your home directory, where the processed files and experiment results will be stored
-* Download covariates ([link](https://db.humanconnectome.org/REST/search/dict/Subject%20Information/results?format=csv&removeDelimitersFromFieldValues=true&restricted=0&project=HCP_1200)), and save as `dataset/hcp/res/hcp_covariates.csv`. 
-* For AWS access, get AWS credentials (see [link](https://wiki.humanconnectome.org/plugins/viewsource/viewpagesrc.action?pageId=67666030)).
-  * Save to `~/.aws/credentials` as
+ ##### HCP database setup
+* Download the HCP covariates file ([link](https://db.humanconnectome.org/REST/search/dict/Subject%20Information/results?format=csv&removeDelimitersFromFieldValues=true&restricted=0&project=HCP_1200)), and save as `dataset/hcp/res/hcp_covariates.csv`. 
+* Get AWS credentials to HCP (see [link](https://wiki.humanconnectome.org/plugins/viewsource/viewpagesrc.action?pageId=67666030)).
+  * Save to file `~/.aws/credentials` in you home folder with conents 
     ```
     [default]
-	aws_access_key_id = 
-	aws_secret_access_key = 
+	aws_access_key_id = (your HCP access key here) 
+	aws_secret_access_key = (your HCP secret access key here)
     ```
   * Using [CLI](https://aws.amazon.com/cli/), run `aws configure`.
 
 ##### DTI
 * Download and install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation).
+* Download and install [ANTs](https://github.com/ANTsX/ANTs)
 
 ### Getting started
 
 ##### HCP Data
 
-1. To download & process the data, at the root folder of the project, `python -m dataset.hcp.scripts.dti.process`. 
+1. To download & process the data, at the root folder of the project, run `python -m dataset.hcp.scripts.dti.process`. 
     * List the subjects to download in `dataset/hcp/scripts/dti/conf/subjects.txt`.
-2. To train and test a CNN on the data, at the root folder of the project, select the arg.ini file describing your experiment, and run `python schedule (local/debug/cbica) experiments/hcp/conf/args.ini`, for example. 
-    * List the subjects for training and testing in `experiments/hcp/conf/(test|train)_subjects.txt`.
+    * The downloaded and post-processed files will be stored in '~/.dnn/datasets/hcp', accessible from your home folder.
+2. To train and test a Diffusion-CNN on the data, at the root folder of the project, select the arg.ini file describing your experiment, and run `python schedule (local/debug/cbica) experiments/hcp/conf/args.ini`. 
+    * The list of subjects for training and testing is located in  `experiments/hcp/conf/(test|train)_subjects.txt`.
+    * The results of you experiments will be stored in '~/.dnn/results' under a folder named according to the data and time when you then experiment was run.

@@ -10,6 +10,7 @@ class Experiment:
     @staticmethod
     def _results_url(config_url):
         results_url = os.path.dirname(config_url)
+        os.makedirs(results_url, exist_ok=True)
         return results_url
 
     @ classmethod

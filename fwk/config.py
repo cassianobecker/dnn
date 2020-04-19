@@ -127,8 +127,7 @@ class ConfigProductGenerator:
         results_base_path = os.path.expanduser(self.config['OUTPUTS']['base_path'])
         experiment_short_name = self.config['EXPERIMENT']['short_name']
 
-        if not os.path.exists(results_base_path):
-            raise FileNotFoundError(f"Results folder not found: {results_base_path}")
+        os.makedirs(results_base_path, exist_ok=True)
 
         current_time = datetime.now().strftime('%Y%m%d_%H%M%S')
 
