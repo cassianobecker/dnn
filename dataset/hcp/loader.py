@@ -1,19 +1,19 @@
 import os
 import torch.utils.data
 
-from dataset.hcp.hcp_data import HcpReader, SkipSubjectException
+from dataset.hcp.reader import HcpReader, SkipSubjectException
 from util.logging import get_logger, set_logger
 from fwk.config import Config
 
 
 class HcpDataset(torch.utils.data.Dataset):
     """
-    A PyTorch Dataset to host and process diffusion data
+    A PyTorch Dataset to host and dti diffusion data
     """
 
     def __init__(self, device, regime, coarsen=None):
 
-        results_path = Config.config['EXPERIMENT']['results_path']
+        results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
         if not os.path.exists(os.path.join(results_path, 'log')):
             os.mkdir(os.path.join(results_path, 'log'))

@@ -15,7 +15,7 @@ class HcpDiffusionDownloader:
 
     def load(self, path, subject):
 
-        local_path = os.path.join(Config.config['DATABASE']['local_server_directory'], path)
+        local_path = os.path.join(os.path.expanduser(Config.config['DATABASE']['local_server_directory']), path)
         if os.path.isfile(local_path):
             self.logger.debug("file found in: " + local_path)
         else:
@@ -27,6 +27,6 @@ class HcpDiffusionDownloader:
                 print(e)
 
     def delete_dir(self, path):
-        path = os.path.join(Config.config['DATABASE']['local_server_directory'], path)
+        path = os.path.join(os.path.expanduser(Config.config['DATABASE']['local_server_directory']), path)
         if os.path.isfile(path):
             os.remove(path)

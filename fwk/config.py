@@ -124,7 +124,7 @@ class ConfigProductGenerator:
 
     def _make_results_path(self):
 
-        results_base_path = self.config['OUTPUTS']['base_path']
+        results_base_path = os.path.expanduser(self.config['OUTPUTS']['base_path'])
         experiment_short_name = self.config['EXPERIMENT']['short_name']
 
         if not os.path.exists(results_base_path):

@@ -23,3 +23,8 @@ def get_dir(module):
     :param module: the client should call by setting module = __file__
     """
     return os.path.dirname(os.path.abspath(module))
+
+
+def is_project_in_cbica():
+    current_file_path = os.path.dirname(os.path.abspath(__file__))
+    return current_file_path.split('/')[1] == 'cbica'

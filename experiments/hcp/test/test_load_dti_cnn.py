@@ -15,7 +15,7 @@ from metrics.dataset import HcpDataset, HcpDataLoader
 def experiment(params, args):
     """
     Sets up the experiment environment (loggers, data loaders, model, optimizer and scheduler) and initiates the
-    train/test process for the model.
+    train/test dti for the model.
     :param args: keyword arguments from main() as parameters for the experiment
     :return: None
     """
