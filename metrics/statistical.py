@@ -15,7 +15,7 @@ class ClassificationAccuracy(Metric):
         self.confusion_matrix = None
         self.epoch = None
 
-    def on_after_train_batch(self, local_variables):
+    def on_after_test_batch(self, local_variables):
         outputs = local_variables['outputs'].cpu()
         targets = local_variables['targets'].cpu()
 
