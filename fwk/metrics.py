@@ -19,7 +19,7 @@ class Metric:
         return event_handler_list
 
     def on_event(self, event_type, local_variables):
-        event_handler = method_to_call = getattr(self, 'on_' + event_type)
+        event_handler = getattr(self, 'on_' + event_type)
         event_handler(local_variables)
 
     def print_metric(self):

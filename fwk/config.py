@@ -147,7 +147,7 @@ def _test_save_configs():
 
     config_url = 'test/args.ini'
     config_generator = ConfigProductGenerator(config_url)
-    config_generator.save_config_products(experiment_name='dnn_hcp')
+    config_generator.save_config_products()
 
     config_product_index = 4
     config_product_url = config_generator.config_product_urls[config_product_index]
@@ -158,4 +158,3 @@ def _test_save_configs():
 
 if __name__ == '__main__':
     _test_save_configs()
-

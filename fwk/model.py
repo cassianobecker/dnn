@@ -7,15 +7,11 @@ class ModelHandler:
 
     @classmethod
     def load_model(cls, epoch=None):
-
-        model_url = cls._check_path_for_model(epoch)
-        model = torch.load(ModelHandler.model.state_dict(), model_url)
-
-        return model
+        cls._check_path_for_model(epoch)
+        raise RuntimeError('Load model not implemented')
 
     @classmethod
     def save_model(cls, model, epoch):
-
         # model_url = cls._make_path_for_model(epoch)
         # torch.save(model.state_dict(), model_url)
         model_url_latest = cls._make_path_for_model(epoch=None)

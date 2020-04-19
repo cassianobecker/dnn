@@ -51,6 +51,7 @@ class BatchTrain:
     def _teardown(self):
         pass
 
+    # noinspection PyUnresolvedReferences
     def setup(self):
 
         torch.manual_seed(1234)
