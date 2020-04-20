@@ -306,7 +306,9 @@ class HcpProcessor:
 
             # 4) reorient warped DT
             ants_command_str = \
-                'ReorientTensorImage 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz' \
+                '' \
+                '' \
+                ' 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz' \
                 .format(registered_dti_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 

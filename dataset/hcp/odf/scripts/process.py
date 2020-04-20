@@ -1,15 +1,18 @@
 from __future__ import print_function
 
-from dataset.hcp.dwi import HcpProcessor
+from dataset.hcp.odf.odf import HcpOdfProcessor
 from fwk.config import Config
 from util.path import append_path
 
 
 def main():
 
-    processor = HcpProcessor()
+    processor = HcpOdfProcessor()
 
-    for subject in processor.subjects:
+    max_subjects = 2
+
+    for subject in processor.database.subjects[:max_subjects]:
+
         print('processing subject {}'.format(subject))
         try:
             processor.process_subject(subject, delete_folders=False)

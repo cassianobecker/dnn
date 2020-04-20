@@ -9,7 +9,7 @@ class HcpDiffusionDownloader:
 
     def __init__(self):
 
-        log_furl = get_logger('HcpReader').handlers[0].stream.name
+        log_furl = os.path.join(os.path.expanduser(Config.config['DATABASE']['local_processing_directory']), 'log', 'downloader.log')
         set_logger('DiffusionDownloader', Config.config['LOGGING']['downloader_level'], log_furl)
         self.logger = get_logger('DiffusionDownloader')
 
