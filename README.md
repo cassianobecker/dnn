@@ -34,6 +34,6 @@ Short description here.
 1. To download & process the data, at the root folder of the project, run `python -m dataset.hcp.scripts.dti.process`. 
     * List the subjects to download in `dataset/hcp/scripts/dti/conf/subjects.txt`.
     * The downloaded and post-processed files will be stored in '~/.dnn/datasets/hcp', accessible from your home folder.
-2. To train and test a Diffusion-CNN on the data, at the root folder of the project, select the arg.ini file describing your experiment, and run `python schedule (local/debug/cbica) experiments/hcp/conf/args.ini`. 
+2. To train and test a Diffusion-CNN on the data, at the root folder of the project, select the arg.ini file describing your experiment, and run `python schedule (local/debug/cbica_cpu/cbica_gpu) experiments/hcp/conf/args.ini`. 
     * The list of subjects for training and testing is located in  `experiments/hcp/conf/(test|train)_subjects.txt`.
     * The results of you experiments will be stored in '~/.dnn/results' under a folder named according to the data and time when you then experiment was run.

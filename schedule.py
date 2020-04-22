@@ -14,12 +14,21 @@ class LocalExperimentRunner:
         subprocess.Popen(process_str, shell=True)
 
 
-class CbicaExperimentRunner:
+class CbicaGpuExperimentRunner:
     @staticmethod
     def run(config_url):
         print(f"Using 'cbica' runner for configuration {config_url}")
         log_url = os.path.join(os.path.dirname(config_url), 'log')
         process_str = f'fwk/shell/cbica_gpu.sh {config_url} {log_url}'
+        subprocess.Popen(process_str, shell=True)
+
+
+class CbicaCpuExperimentRunner:
+    @staticmethod
+    def run(config_url):
+        print(f"Using 'cbica' runner for configuration {config_url}")
+        log_url = os.path.join(os.path.dirname(config_url), 'log')
+        process_str = f'fwk/shell/cbica_cpu.sh {config_url} {log_url}'
         subprocess.Popen(process_str, shell=True)
 
 
@@ -36,7 +45,8 @@ class ExperimentScheduler:
 
     runners = {
         'local': LocalExperimentRunner(),
-        'cbica': CbicaExperimentRunner(),
+        'cbica_cpu': CbicaCpuExperimentRunner(),
+        'cbica_gpu': CbicaGpuExperimentRunner(),
         'debug': DebugExperimentRunner(),
     }
 
