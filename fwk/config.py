@@ -2,17 +2,19 @@ import configparser
 from itertools import product
 import os
 from datetime import datetime
+from util.string import range_to_comma_separated_string
 
 
 class Config:
 
-    config = None
+    config: configparser = None
 
     @classmethod
     def set_config_from_url(cls, config_url):
         config = configparser.ConfigParser()
         config.read(config_url)
         cls.config = config
+
 
     @classmethod
     def set_config(cls, config):
@@ -35,6 +37,7 @@ class ConfigProductGenerator:
             raise Exception(f'ConfigParser file not found on {config_url}')
 
         self.config = config
+        self._pre_process_config()
 
         self.config_products = []
         self.config_product_urls = []
@@ -45,6 +48,21 @@ class ConfigProductGenerator:
 
         base_config, all_config_lists = self._parse_config()
         self._create_config_products(base_config, all_config_lists)
+
+    def _add_subject_batches(self, session, key):
+
+        if session == 'SUBJECTS' and key == 'number_of_batches':
+            number_of_batches = int(self.config['SUBJECTS']['number_of_batches'])
+            self.config['SUBJECTS']['subject_batch_index'] = range_to_comma_separated_string(number_of_batches)
+
+    def _pre_process_config(self):
+
+        pre_processing_functions = [self._add_subject_batches]
+
+        for session in self.config.keys():
+            for key in self.config[session]:
+                for pre_process_function in pre_processing_functions:
+                    pre_process_function(session, key)
 
     def has_multiple_products(self):
         return len(self.config_products) > 1

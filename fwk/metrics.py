@@ -60,23 +60,25 @@ class MetricsHandler:
 
         metrics_config, observers_config = cls._get_configs()
 
-        observers = dict()
+        if metrics_config is not None:
 
-        for metrics_class_name in metrics_config.sections():
+            observers = dict()
 
-            metric = class_for_name(metrics_class_name)()
+            for metrics_class_name in metrics_config.sections():
 
-            for observer_name in list_from(metrics_config[metrics_class_name]['observers']):
+                metric = class_for_name(metrics_class_name)()
 
-                if observer_name not in observers.keys():
-                    observer = cls._create_observer(observers_config, observer_name)
-                    observers[observer_name] = observer
-                else:
-                    observer = observers[observer_name]
+                for observer_name in list_from(metrics_config[metrics_class_name]['observers']):
 
-                metric.add_observer(observer)
+                    if observer_name not in observers.keys():
+                        observer = cls._create_observer(observers_config, observer_name)
+                        observers[observer_name] = observer
+                    else:
+                        observer = observers[observer_name]
 
-            cls.register_events(metric)
+                    metric.add_observer(observer)
+
+                cls.register_events(metric)
 
         pass
 
@@ -108,13 +110,19 @@ class MetricsHandler:
 
         metrics_config = configparser.ConfigParser(allow_no_value=True)
         metrics_config.optionxform = str
-        metrics_ini_url = Config.config['METRICS']['metrics_ini_url']
-        metrics_config.read(absolute_path(metrics_ini_url))
 
-        observers_config = configparser.ConfigParser(allow_no_value=True)
-        observers_ini_url = Config.config['METRICS']['observers_ini_url']
-        observers_config.optionxform = str
-        observers_config.read(absolute_path(observers_ini_url))
+        if 'METRICS' in Config.config.sections():
+            metrics_ini_url = Config.config['METRICS']['metrics_ini_url']
+            metrics_config.read(absolute_path(metrics_ini_url))
+
+            observers_config = configparser.ConfigParser(allow_no_value=True)
+            observers_ini_url = Config.config['METRICS']['observers_ini_url']
+            observers_config.optionxform = str
+            observers_config.read(absolute_path(observers_ini_url))
+
+        else:
+            metrics_config = None
+            observers_config = None
 
         return metrics_config, observers_config
 

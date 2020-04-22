@@ -64,6 +64,12 @@ class HcpDiffusionDatabase:
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
         return subjects
 
+    def subject_batch(self, batch_index, number_of_batches):
+        batch_size = int(len(self.subjects) / (number_of_batches - 1))
+        initial = batch_index * batch_size
+        final = (batch_index + 1) * batch_size
+        return self.subjects[initial:final]
+
     def subject_dir(self, subject):
         return os.path.join(self.mirror_folder, 'HCP_1200', subject)
 

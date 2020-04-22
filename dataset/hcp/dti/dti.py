@@ -10,10 +10,14 @@ from util.logging import get_logger, set_logger
 from fwk.config import Config
 from util.path import absolute_path, is_project_in_cbica
 
+from dataset.hcp.hcp import HcpDiffusionDatabase
+
 
 class HcpDtiProcessor:
 
     def __init__(self):
+
+        self.database = HcpDiffusionDatabase()
 
         self.processing_folder = os.path.expanduser(Config.config['DATABASE']['local_processing_directory'])
         if not os.path.isdir(self.processing_folder):
@@ -147,13 +151,35 @@ class HcpDtiProcessor:
 
         return dti_file == self.dti_files
 
-    def fit_dti(self, subject):
-
-        diffusion_dir = os.path.join(self.mirror_folder, self._diffusion_dir(subject))
+        diffusion_dir = os.path.join(self.database.mirror_folder, self.database.diffusion_dir(subject))
         processed_fsl_dir = self._fsl_folder(subject)
 
         if self._is_dti_processed(self, subject):
             self.logger.info('processed dti files found for subject {}'.format(subject))
+        else:
+            self.logger.info('processing dti files for subject {}'.format(subject))
+            if not os.path.isdir(processed_fsl_dir):
+                os.makedirs(processed_fsl_dir)
+
+            dti_fit_command_str = \
+                'dtifit -k {0}/data.nii.gz -o {1}/fsl -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
+                '--save_tensor'.format(diffusion_dir, processed_fsl_dir)
+
+            subprocess.run(dti_fit_command_str, shell=True, check=True)
+
+    def fit_dti(self, subject):
+
+        diffusion_dir = os.path.join(self.database.mirror_folder, self.database.diffusion_dir(subject))
+        processed_fsl_dir = self._fsl_folder(subject)
+
+        if os.path.isdir(processed_fsl_dir):
+            dti_file = set(os.listdir(processed_fsl_dir))
+        else:
+            dti_file = {}
+
+        if dti_file == self.dti_files:
+            self.logger.info('processed dti files found for subject {}'.format(subject))
+
         else:
             self.logger.info('processing dti files for subject {}'.format(subject))
             if not os.path.isdir(processed_fsl_dir):
@@ -253,9 +279,7 @@ class HcpDtiProcessor:
 
             # 4) reorient warped DT
             ants_command_str = \
-                '' \
-                '' \
-                ' 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz' \
+                'ReorientTensorImage 3 {0}/DTDeformed.nii.gz {0}/DTReorientedWarp.nii.gz {0}/FA_reg_combinedWarp.nii.gz' \
                 .format(registered_dti_dir)
             subprocess.run(ants_command_str, shell=True, check=True)
 
@@ -321,19 +345,19 @@ class HcpDtiProcessor:
             subprocess.run(ants_command_str, shell=True, check=True)
 
             # clean up
-            file_list = glob.glob(os.path.join(ants_dir,'*_*.nii.gz'), recursive=False)
+            file_list = glob.glob(os.path.join(ants_dir, '*_*.nii.gz'), recursive=False)
             for file in file_list: os.remove(file)
-            os.remove(os.path.join(ants_dir,'V1.nii.gz'))
-            os.remove(os.path.join(ants_dir,'V2.nii.gz'))
-            os.remove(os.path.join(ants_dir,'V3.nii.gz'))
+            os.remove(os.path.join(ants_dir, 'V1.nii.gz'))
+            os.remove(os.path.join(ants_dir, 'V2.nii.gz'))
+            os.remove(os.path.join(ants_dir, 'V3.nii.gz'))
 
             # 5) mask outputs
-            file_list = glob.glob(os.path.join(ants_dir,'*.nii.gz'), recursive=False)
-            for file in file_list:
-                command_str = \
-                    'fslmaths {0} -mul {1}/{2} {0}' \
-                    .format(file, template_folder, mask_file)
-                subprocess.run(command_str, shell=True, check=True)
+            # file_list = glob.glob(os.path.join(ants_dir,'*.nii.gz'), recursive=False)
+            # for file in file_list:
+            #     command_str = \
+            #         'fslmaths {0} -mul {1}/{2} {0}' \
+            #         .format(file, template_folder, mask_file)
+            #     subprocess.run(command_str, shell=True, check=True)
 
     def build_dti_tensor_image(self, subject):
         """
@@ -347,5 +371,5 @@ class HcpDtiProcessor:
             bvals_file = glob.glob(os.path.join(ants_dir, 'L' + str(i) + '*'))[0]
             bvecs = nib.load(bvecs_file).get_fdata()
             bvals = nib.load(bvals_file).get_fdata()
-            dti_tensor = dti_tensor + np.einsum('abc,abci,abcj->ijabc', bvals, bvecs, bvecs)
+            dti_tensor = dti_tensor + np.einsum('abc, abci, abcj->ijabc', bvals, bvecs, bvecs)
         return dti_tensor

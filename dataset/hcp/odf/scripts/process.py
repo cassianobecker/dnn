@@ -20,7 +20,21 @@ def main():
             print(e)
 
 
+def test_batch_subjects():
+    processor = HcpOdfProcessor()
+
+    number_of_batches = Config.config['SUBJECTS']['number_of_batches']
+
+    for b in range(number_of_batches):
+        print (f'*** BATCH {b} of {number_of_batches} ***')
+
+        for (k, subject) in enumerate(processor.database.subject_batch(b, number_of_batches)):
+            print(f'processing subject {k}:  {subject}')
+
+
 if __name__ == '__main__':
     config_url = append_path(__file__, 'conf/args.ini')
     Config.set_config_from_url(config_url)
+
+    test_batch_subjects()
     main()
