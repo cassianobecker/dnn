@@ -5,7 +5,7 @@ Short description here.
 ### Setting up
 
 ##### Conda environment
-* To create a conda environment, `cd` to the directory.], and
+* To create a conda environment, `cd` to the directory, and
   * run `conda env create -f environment.yml` on a local machine and
   * run `conda env create -f environment_cbica.yml` on the CBICA cluster.
     * To download `conda`, visit [anaconda.com](https://www.anaconda.com/distribution/).
