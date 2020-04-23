@@ -5,9 +5,10 @@ Short description here.
 ### Setting up
 
 ##### Conda environment
-* Run `conda env create -f environment.yml` in the directory.
+* On a local machine, run `conda env create -f environment.yml` in the directory.
   * To download `conda`, visit [anaconda.com](https://www.anaconda.com/distribution/).
-* To activate environment in the command line, run `conda activate dnn`.
+  * On the CBICA cluster, run `conda env create -f environment_cbica.yml` in the directory.
+* To activate environment in the command line, run `conda activate dnn` for a local machine and `conda activate dnn-cbica` on the cluster.
 * To activate environment in PyCharm
   * Open PyCharm. Open `dnn` directory as a project.
   * Then, select "Preferences" > "Project: dnn" > ⚙️ > "Add..." > "Conda Environment" > "Existing environment" > "/Users/username/anaconda3/envs/dti-enn/bin/python"
