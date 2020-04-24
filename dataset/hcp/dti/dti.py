@@ -34,7 +34,7 @@ class HcpDtiProcessor:
 
         self.template_folder = absolute_path(Config.config['TEMPLATE']['folder'])
         self.template_file = Config.config['TEMPLATE']['template']
-        self.mask_file = Config.config['TEMPLATE']['mask']
+
 
         self.dti_files = self._dti_files()
         self.converted_dti_files = self._converted_diti_files()
@@ -289,8 +289,6 @@ class HcpDtiProcessor:
         """
         registered_dti_dir = self._reg_folder(subject)
         ants_dir = self._ants_folder(subject)
-        template_folder = self.template_folder
-        mask_file = self.mask_file
 
         if os.path.isdir(ants_dir):
             ants_file = set(os.listdir(ants_dir))
@@ -350,14 +348,6 @@ class HcpDtiProcessor:
             os.remove(os.path.join(ants_dir, 'V1.nii.gz'))
             os.remove(os.path.join(ants_dir, 'V2.nii.gz'))
             os.remove(os.path.join(ants_dir, 'V3.nii.gz'))
-
-            # 5) mask outputs
-            # file_list = glob.glob(os.path.join(ants_dir,'*.nii.gz'), recursive=False)
-            # for file in file_list:
-            #     command_str = \
-            #         'fslmaths {0} -mul {1}/{2} {0}' \
-            #         .format(file, template_folder, mask_file)
-            #     subprocess.run(command_str, shell=True, check=True)
 
     def build_dti_tensor_image(self, subject):
         """

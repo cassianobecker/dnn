@@ -7,7 +7,7 @@ from util.string import range_to_comma_separated_string
 
 class Config:
 
-    config: configparser = None
+    config = None
 
     @classmethod
     def set_config_from_url(cls, config_url):

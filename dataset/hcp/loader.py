@@ -26,6 +26,12 @@ class HcpDataset(torch.utils.data.Dataset):
         self.device = device
         self.reader = HcpReader()
 
+        if Config.config.has_option('TRANSFORMS', 'region'):
+            region_str = Config.config['TRANSFORMS']['region']
+            self.region = self.reader.parse_region(region_str)
+        else:
+            self.region = None
+
         subject_file_url = Config.config['SUBJECTS'][f'{regime}_subjects_file']
 
         if 'max_subjects' in Config.config['SUBJECTS'].keys():
@@ -40,20 +46,24 @@ class HcpDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         subject = self.subjects[idx]
-        return self.data_for_subject(subject)
+        return self.data_for_subject(subject, region=self.region)
 
-    def data_for_subject(self, subject):
+    def data_for_subject(self, subject, region=None):
 
         try:
             self.reader.logger.info("feeding subject {:}".format(subject))
 
-            dti_tensor = self.reader.load_dti_tensor_image(subject)
+            dti_tensor = self.reader.load_dti_tensor_image(subject, region=region)
             target = self.reader.load_covariate(subject)
 
         except SkipSubjectException:
             self.reader.logger.warning("skipping subject {:}".format(subject))
 
         return dti_tensor, target, subject
+
+    def tensor_size(self):
+        size = self.__getitem__(0)[0].shape[1:]
+        return size
 
     def self_check(self):
         for subject in self.subjects:

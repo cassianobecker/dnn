@@ -4,16 +4,16 @@ import torch.nn.functional as F
 
 
 class DtiConv3dTorch(nn.Module):
-    def __init__(self, c_out, kernel_dims, strides):
+    def __init__(self, out_channels, kernel_size, stride):
         super(DtiConv3dTorch, self).__init__()
 
-        self.strides = strides
-        self.c_out = c_out
-        self.kernel_dims = kernel_dims
+        self.stride = stride
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
         self.dti_dim = 3
 
-        self.weight = nn.Parameter(torch.Tensor(c_out, self.dti_dim, self.dti_dim,
-                                                kernel_dims[0], kernel_dims[1], kernel_dims[2]))
+        self.weight = nn.Parameter(torch.Tensor(out_channels, self.dti_dim, self.dti_dim,
+                                                kernel_size[0], kernel_size[1], kernel_size[2]))
         self.register_parameter('weight', self.weight)
         self.weight.data.uniform_(-0.1, 0.1)
 
@@ -23,13 +23,13 @@ class DtiConv3dTorch(nn.Module):
         sw = self.weight.shape
 
         y = F.conv3d(x.view(sx[0], sx[1] * sx[2], sx[3], sx[4], sx[5]).type(self.weight.dtype),
-                 self.weight.view(sw[0], sw[1] * sw[2], sw[3], sw[4], sw[5]), stride=self.strides)
+                     self.weight.view(sw[0], sw[1] * sw[2], sw[3], sw[4], sw[5]), stride=self.stride)
 
         return y
 
     def forward2(self, x):
 
-        xu = x.unfold(3, self.kernel_dims[0], 1).unfold(4, self.kernel_dims[1], 1).unfold(5, self.kernel_dims[2], 1) \
+        xu = x.unfold(3, self.kernel_size[0], 1).unfold(4, self.kernel_size[1], 1).unfold(5, self.kernel_size[2], 1) \
             .permute(3, 4, 5, 0, 1, 2, 6, 7, 8)
 
         y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)
@@ -38,22 +38,22 @@ class DtiConv3dTorch(nn.Module):
 
 
 class DtiConv3d(nn.Module):
-    def __init__(self, c_out, kernel_dims, skip):
+    def __init__(self, out_channels, kernel_size, skip):
         super(DtiConv3d, self).__init__()
 
-        self.c_out = c_out
-        self.kernel_dims = kernel_dims
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
         self.skip = skip
         self.dti_dim = 3
 
-        self.weight = nn.Parameter(torch.Tensor(c_out, self.dti_dim, self.dti_dim,
-                                                kernel_dims[0], kernel_dims[1], kernel_dims[2]))
+        self.weight = nn.Parameter(torch.Tensor(out_channels, self.dti_dim, self.dti_dim,
+                                                kernel_size[0], kernel_size[1], kernel_size[2]))
         self.register_parameter('weight', self.weight)
         self.weight.data.uniform_(-0.1, 0.1)
 
     def forward(self, x):
 
-        xu = x.unfold(3, self.kernel_dims[0], 1).unfold(4, self.kernel_dims[1], 1).unfold(5, self.kernel_dims[2], 1) \
+        xu = x.unfold(3, self.kernel_size[0], 1).unfold(4, self.kernel_size[1], 1).unfold(5, self.kernel_size[2], 1) \
             .permute(3, 4, 5, 0, 1, 2, 6, 7, 8)
 
         y = torch.einsum('cmnijk,stulmnijk->lcstu', self.weight, xu)

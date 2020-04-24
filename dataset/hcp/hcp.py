@@ -34,9 +34,6 @@ class HcpDiffusionDatabase:
         self.DTI_MASK = 'nodif_brain_mask.nii.gz'
         self.DTI_DATA = 'data.nii.gz'
 
-    def process_subject(self, subject, delete_folders=False):
-        pass
-
     @staticmethod
     def get_mirror_folder():
 
@@ -73,7 +70,8 @@ class HcpDiffusionDatabase:
     def subject_dir(self, subject):
         return os.path.join(self.mirror_folder, 'HCP_1200', subject)
 
-    def diffusion_dir(self, subject):
+    @staticmethod
+    def diffusion_dir(subject):
         return os.path.join('HCP_1200', subject, 'T1w', 'Diffusion')
 
     def url_for_file(self, subject, name):
@@ -104,9 +102,5 @@ class HcpDiffusionDatabase:
         return dif
 
     def get_diffusion(self, subject):
-
         fnames = [self.DTI_BVALS, self.DTI_BVECS, self.DTI_MASK, self.DTI_DATA]
-
         self.load_raw_diffusion(subject, fnames)
-
-
