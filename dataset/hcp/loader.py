@@ -62,8 +62,8 @@ class HcpDataset(torch.utils.data.Dataset):
         return dti_tensor, target, subject
 
     def tensor_size(self):
-        size = self.__getitem__(0)[0].shape[1:]
-        return size
+        tensor_shape = self.__getitem__(0)[0].shape
+        return tensor_shape
 
     def self_check(self):
         for subject in self.subjects:

@@ -2,7 +2,7 @@ from dataset.hcp.reader import HcpReader
 from util.path import append_path
 import numpy as np
 from util.plot import plot_tensor_slices
-
+from experiments.hcp.architectures_vgg import vgg11
 
 def _sparsity(tensor):
     sparsity = np.sum(tensor != 0) / np.sum(tensor != np.NaN)
@@ -27,9 +27,11 @@ class ReadAndTransform:
             img = reader.load_dti_tensor_image(subject, region=region)
             print(f'sparsity before {_sparsity(img)}')
 
-            z = np.einsum('ijklm->klm', img ** 2)
+            z = np.sqrt(np.einsum('iklm->klm', img ** 2))
 
             plot_tensor_slices(z, middle=True)
+
+            model = vgg11(img_dims, number_of_classes)
 
             # img2 = reader.apply_mask(img)
 

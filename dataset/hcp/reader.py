@@ -49,11 +49,23 @@ class HcpReader:
     def _processed_tensor_url(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
 
-    def load_dti_tensor_image(self, subject, region=None):
+    def load_dti_tensor_image(self, subject, region=None, vectorize=True, normalize=True, mask=False):
+
         dti_tensor = np.load(self._processed_tensor_url(subject))['dti_tensor']
+
         if region is not None:
             slices = slice_from_list_of_pairs(region, null_offset=2)
             dti_tensor = dti_tensor[slices]
+
+        if mask is True:
+            dti_tensor = self.apply_mask(dti_tensor)
+
+        if vectorize is True:
+            dti_tensor = self.vectorize_channels(dti_tensor)
+
+        if normalize is True:
+            dti_tensor = self.normalize_channels(dti_tensor)
+
         return dti_tensor
 
     def load_covariate(self, subject):
@@ -66,6 +78,20 @@ class HcpReader:
 
         mask_tensor = nb.load(absolute_path(self.mask_file)).get_data()
         return mask_tensor * tensor
+
+    @staticmethod
+    def vectorize_channels(tensor):
+        return tensor.reshape((tensor.shape[0]*tensor.shape[1], *tensor.shape[2:]))
+
+    @staticmethod
+    def normalize_channels(tensor):
+        einsums = {4: 'iklm->klm', 5: 'ijklm->klm'}
+        einsum_str = einsums[len(tensor.shape)]
+
+        norms = np.sqrt(np.einsum(einsum_str, tensor ** 2))
+        denominator = np.average(norms, weights=norms != 0)
+
+        return tensor/denominator
 
     def parse_region(self, region_str):
         region_str_list = [int(x.strip()) for x in region_str.split(' ')]

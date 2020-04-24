@@ -26,16 +26,22 @@ def plot_tensor_slices(tensor, slices=None, middle=False):
     img = np.flip(img, 1)
     plt.imshow(img)
     plt.title('sagittal')
+    plt.colorbar()
+    plt.autoscale(enable=True, axis='both', tight=None)
 
     plt.subplot(n_rows, n_cols, 3)
     img = np.squeeze(tensor[:, slices[1], :]).T
     img = np.flip(img, 0)
     plt.imshow(img)
     plt.title('coronal')
+    plt.colorbar()
+    plt.autoscale(enable=True, axis='both', tight=None)
 
     plt.subplot(n_rows, n_cols, 4)
     img = np.squeeze(tensor[:, :, slices[2]])
     img = np.flip(img, 1)
     plt.title('transversal')
+    plt.colorbar()
+    plt.autoscale(enable=True, axis='both', tight=None)
 
     plt.imshow(img)

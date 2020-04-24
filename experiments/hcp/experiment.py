@@ -10,6 +10,7 @@ from util.lang import to_bool
 
 from dataset.hcp.loader import HcpDataset, HcpDataLoader
 from util.lang import class_for_name
+from experiments.hcp.architectures_vgg import vgg11
 
 
 class BatchTrain:
@@ -73,11 +74,13 @@ class BatchTrain:
         )
 
         img_dims = train_set.tensor_size()
-        number_of_classes = 2
+        num_classes = 2
 
-        arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
-        model_class = class_for_name(arch_class_name)
-        self.model = model_class(img_dims, number_of_classes)
+        # arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
+        # model_class = class_for_name(arch_class_name)
+        # self.model = model_class(img_dims, num_classes)
+        self.model = vgg11(img_dims, num_classes)
+
         self.model.to(self.device)
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
@@ -101,7 +104,8 @@ class BatchTrain:
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
-            dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
+            dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
+                                   targets.to(self.device).type(torch.long)
 
             self.optimizer.zero_grad()
 
