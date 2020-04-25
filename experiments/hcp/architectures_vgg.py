@@ -16,7 +16,8 @@ class DiffVGG(nn.Module):
         avg_width = 7
         self.avgpool = nn.AdaptiveAvgPool3d((avg_width, avg_width, avg_width))
         self.classifier = nn.Sequential(
-            nn.Linear(512 * avg_width * avg_width * avg_width, 4096),
+            # nn.Linear(512 * avg_width * avg_width * avg_width, 4096),
+            nn.Linear(128 * avg_width * avg_width * avg_width, 4096),
             nn.ReLU(True),
             nn.Dropout(),
             nn.Linear(4096, 4096),
@@ -63,8 +64,9 @@ def make_layers(cfg, in_channels, batch_norm=False):
     return nn.Sequential(*layers)
 
 
+#'Z': [64, 'M', 128, 'M', 256, 512, 'M'],
 cfgs = {
-    'Z': [64, 'M', 128, 'M', 256, 512, 'M'],
+    'Z': [64, 'M', 64, 'M', 128, 128, 'M'],
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'B': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
     'D': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],

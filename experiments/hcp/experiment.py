@@ -127,7 +127,8 @@ class BatchTrain:
 
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
+                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
+                                       targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)
 
