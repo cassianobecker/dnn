@@ -7,7 +7,7 @@ Short description here.
 ##### Conda environment
 * Run `conda env create -f environment.yml` in the directory.
   * To download `conda`, visit [anaconda.com](https://www.anaconda.com/distribution/).
-* To activate environment in the command line, run `conda activate dnn`.
+* To activate environment in the command line, run `(conda|source) activate dnn`.
 * To activate environment in PyCharm
   * Open PyCharm. Open `dnn` directory as a project.
   * Then, select "Preferences" > "Project: dnn" > ⚙️ > "Add..." > "Conda Environment" > "Existing environment" > "/Users/username/anaconda3/envs/dti-enn/bin/python"
@@ -31,8 +31,8 @@ Short description here.
 
 ##### HCP Data
 
-1. To download & process the data, at the root folder of the project, run `python -m dataset.hcp.scripts.dti.process`. 
-    * List the subjects to download in `dataset/hcp/scripts/dti/conf/subjects.txt`.
+1. To download & process the data, at the root folder of the project, run `python schedule (local/debug/cbica_cpu) dataset/hcp/dti/scripts/conf/args.ini`. 
+    * List the subjects to download and process in `dataset/hcp/dti/scripts/conf/subjects.txt`.
     * The downloaded and post-processed files will be stored in '~/.dnn/datasets/hcp', accessible from your home folder.
 2. To train and test a Diffusion-CNN on the data, at the root folder of the project, select the arg.ini file describing your experiment, and run `python schedule (local/debug/cbica_cpu/cbica_gpu) experiments/hcp/conf/args.ini`. 
     * The list of subjects for training and testing is located in  `experiments/hcp/conf/(test|train)_subjects.txt`.

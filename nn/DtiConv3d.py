@@ -58,6 +58,26 @@ class DtiConv3dTorchVect(nn.Module):
         return y
 
 
+class DtiConv3dTorchVectFirst(nn.Module):
+    def __init__(self, out_channels):
+        super(DtiConv3dTorchVectFirst, self).__init__()
+
+        self.stride = 1
+        self.out_channels = out_channels
+        self.kernel_size = 1
+        self.dti_dim = 9
+
+        self.weight = nn.Parameter(torch.Tensor(self.dti_dim, out_channels))
+        self.register_parameter('weight', self.weight)
+        self.weight.data.uniform_(-0.1, 0.1)
+
+    def forward(self, x):
+
+        y = torch.matmul(x.permute(2, 3, 4, 0, 1), self.weight).permute(3, 4, 0, 1, 2)
+
+        return y
+
+
 class DtiConv3d(nn.Module):
     def __init__(self, out_channels, kernel_size, skip):
         super(DtiConv3d, self).__init__()
