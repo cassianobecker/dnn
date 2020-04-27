@@ -31,8 +31,6 @@ class ReadAndTransform:
 
             plot_tensor_slices(z, middle=True)
 
-            model = vgg11(img_dims, number_of_classes)
-
             # img2 = reader.apply_mask(img)
 
             # z2 = np.einsum('ijklm->klm', img2 ** 2)

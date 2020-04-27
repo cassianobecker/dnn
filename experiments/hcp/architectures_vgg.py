@@ -1,16 +1,11 @@
+import torch.nn.functional as func
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-from util.architecture import Dimensions
-import torch
-import torch.nn as nn
-# from torch.utils import load_state_dict_from_url
 
 
 class DiffVGG(nn.Module):
 
-    def __init__(self, features, img_dims, num_classes, init_weights=True):
+    def __init__(self, features, _, num_classes, init_weights=True):
         super(DiffVGG, self).__init__()
         self.features = features
         avg_width = 7
@@ -33,7 +28,8 @@ class DiffVGG(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
         x = self.classifier(x)
-        return x
+        output = func.log_softmax(x, dim=1)
+        return output
 
     def _initialize_weights(self):
         for m in self.modules():
@@ -64,7 +60,7 @@ def make_layers(cfg, in_channels, batch_norm=False):
     return nn.Sequential(*layers)
 
 
-#'Z': [64, 'M', 128, 'M', 256, 512, 'M'],
+# 'Z': [64, 'M', 128, 'M', 256, 512, 'M'],
 cfgs = {
     'Z': [64, 'M', 64, 'M', 128, 128, 'M'],
     'A': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
@@ -74,20 +70,28 @@ cfgs = {
 }
 
 
-def _vgg(arch, cfg, img_dims, num_classes, batch_norm, pretrained, progress, **kwargs):
-    in_channels = img_dims[0]
-    model = DiffVGG(make_layers(cfgs[cfg], in_channels, batch_norm=batch_norm), img_dims, num_classes, **kwargs)
+class Vgg11(DiffVGG):
 
-    return model
+    def __init__(self, img_dims, num_classes, **kwargs):
+        in_channels = img_dims[0]
+        cfg = 'Z'
+        batch_norm = False
+        super().__init__(make_layers(cfgs[cfg], in_channels, batch_norm=batch_norm), img_dims, num_classes, **kwargs)
 
 
-def vgg11(img_dims, num_classes, pretrained=False, progress=True, **kwargs):
-    r"""VGG 11-layer model (configuration "A") from
-    `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`_
+# def _vgg(arch, cfg, img_dims, num_classes, batch_norm, pretrained, progress, **kwargs):
+#     in_channels = img_dims[0]
+#     model = DiffVGG(make_layers(cfgs[cfg], in_channels, batch_norm=batch_norm), img_dims, num_classes, **kwargs)
+#
+#     return model
 
-    Args:
-        pretrained (bool): If True, returns a model pre-trained on ImageNet
-        progress (bool): If True, displays a progress bar of the download to stderr
-        :param in_channels: number of channels
-    """
-    return _vgg('vgg11', 'Z', img_dims, num_classes, False, pretrained, progress, **kwargs)
+# def vgg11(img_dims, num_classes, pretrained=False, progress=True, **kwargs):
+#     r"""VGG 11-layer model (configuration "A") from
+#     `"Very Deep Convolutional Networks For Large-Scale Image Recognition" <https://arxiv.org/pdf/1409.1556.pdf>`_
+#
+#     Args:
+#         pretrained (bool): If True, returns a model pre-trained on ImageNet
+#         progress (bool): If True, displays a progress bar of the download to stderr
+#         :param in_channels: number of channels
+#     """
+#     return _vgg('vgg11', 'Z', img_dims, num_classes, False, pretrained, progress, **kwargs)

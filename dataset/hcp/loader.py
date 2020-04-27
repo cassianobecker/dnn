@@ -11,7 +11,7 @@ class HcpDataset(torch.utils.data.Dataset):
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, regime, coarsen=None):
+    def __init__(self, device, regime):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
@@ -50,10 +50,13 @@ class HcpDataset(torch.utils.data.Dataset):
 
     def data_for_subject(self, subject, region=None):
 
+        dti_tensor, target = None, None
+
         try:
             self.reader.logger.info("feeding subject {:}".format(subject))
 
             dti_tensor = self.reader.load_dti_tensor_image(subject, region=region)
+
             target = self.reader.load_covariate(subject)
 
         except SkipSubjectException:
@@ -65,14 +68,8 @@ class HcpDataset(torch.utils.data.Dataset):
         tensor_shape = self.__getitem__(0)[0].shape
         return tensor_shape
 
-    def self_check(self):
-        for subject in self.subjects:
-            self.reader.process_subject(subject)
-
 
 class HcpDataLoader(torch.utils.data.DataLoader):
 
     def __init__(self, *args, **kwargs):
         super(HcpDataLoader, self).__init__(*args, **kwargs)
-
-

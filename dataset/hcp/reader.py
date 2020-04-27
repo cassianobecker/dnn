@@ -6,7 +6,6 @@ from fwk.config import Config
 from util.path import absolute_path
 import nibabel as nb
 from util.arrays import slice_from_list_of_pairs
-from util.string import list_from
 
 
 class HcpReader:
@@ -51,7 +50,10 @@ class HcpReader:
 
     def load_dti_tensor_image(self, subject, region=None, vectorize=True, normalize=True, mask=False):
 
-        dti_tensor = np.load(self._processed_tensor_url(subject))['dti_tensor']
+        try:
+            dti_tensor = np.load(self._processed_tensor_url(subject))['dti_tensor']
+        except FileNotFoundError:
+            raise SkipSubjectException(f'File for subject {subject} not found')
 
         if region is not None:
             slices = slice_from_list_of_pairs(region, null_offset=2)
@@ -66,10 +68,10 @@ class HcpReader:
         if normalize is True:
             dti_tensor = self.normalize_channels(dti_tensor)
 
-        return dti_tensor
+        return dti_tensor.astype(np.float32)
 
     def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject).argmin()
+        return self.covariates.value(self.field, subject).argmin().astype(np.long)
 
     def apply_mask(self, tensor):
 
@@ -93,14 +95,11 @@ class HcpReader:
 
         return tensor/denominator
 
-    def parse_region(self, region_str):
+    @staticmethod
+    def parse_region(region_str):
         region_str_list = [int(x.strip()) for x in region_str.split(' ')]
         return np.reshape(region_str_list, (3, 2)).tolist()
 
-
-    def get_tensor_size(self):
-        size = self.load_dti_tensor_image()
-        return size
 
 class SkipSubjectException(Exception):
     def __init(self, msg):
