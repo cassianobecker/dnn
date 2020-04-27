@@ -29,9 +29,9 @@ class HcpReader:
 
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
-            self.mask_file = os.path.join(mask_folder, Config.config['TEMPLATE']['mask'])
+            self.mask_url = os.path.join(mask_folder, Config.config['TEMPLATE']['mask'])
         else:
-            self.mask_file = None
+            self.mask_url = None
 
     def load_subject_list(self, list_url, max_subjects=None):
         self.logger.info('loading subjects from ' + list_url)
@@ -59,7 +59,7 @@ class HcpReader:
             slices = slice_from_list_of_pairs(region, null_offset=2)
             dti_tensor = dti_tensor[slices]
 
-        if mask is True:
+        if self.mask_url is not None:
             dti_tensor = self.apply_mask(dti_tensor)
 
         if vectorize is True:
@@ -75,10 +75,10 @@ class HcpReader:
 
     def apply_mask(self, tensor):
 
-        if self.mask_file is None:
+        if self.mask_url is None:
             raise RuntimeError('No mask file set in the configuration file')
 
-        mask_tensor = nb.load(absolute_path(self.mask_file)).get_data()
+        mask_tensor = nb.load(absolute_path(self.mask_url)).get_data()
         return mask_tensor * tensor
 
     @staticmethod
