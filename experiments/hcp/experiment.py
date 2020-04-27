@@ -72,9 +72,14 @@ class BatchTrain:
             batch_size=int(Config.config['ALGORITHM']['test_batch_size'])
         )
 
+        img_dims = train_set.tensor_size()
+        num_classes = 2
+
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
-        self.model = model_class().to(self.device)
+        self.model = model_class(img_dims, num_classes)
+
+        self.model.to(self.device)
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
 
@@ -97,10 +102,13 @@ class BatchTrain:
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
-            dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
+            dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
+                                   targets.to(self.device).type(torch.long)
 
             self.optimizer.zero_grad()
+
             outputs = self.model(dti_tensors)
+
             loss = F.nll_loss(outputs, targets)
             loss.backward()
             self.optimizer.step()
@@ -117,7 +125,8 @@ class BatchTrain:
 
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device), targets.to(self.device).type(torch.long)
+                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
+                                       targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)
 

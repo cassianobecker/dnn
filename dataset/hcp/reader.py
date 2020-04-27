@@ -4,19 +4,34 @@ from dataset.hcp.covariates import Covariates
 from util.logging import get_logger, set_logger
 from fwk.config import Config
 from util.path import absolute_path
+import nibabel as nb
+from util.arrays import slice_from_list_of_pairs
 
 
 class HcpReader:
 
     def __init__(self):
 
-        log_furl = os.path.join(Config.config['EXPERIMENT']['results_path'], 'log', 'downloader.log')
+        self.processing_folder = os.path.expanduser(Config.config['DATABASE']['local_processing_directory'])
+        if not os.path.isdir(self.processing_folder):
+            os.makedirs(self.processing_folder, exist_ok=True)
+
+        log_folder = os.path.expanduser(os.path.join(Config.config['EXPERIMENT']['results_path'], 'log'))
+        if not os.path.isdir(log_folder):
+            os.makedirs(log_folder, exist_ok=True)
+
+        log_furl = os.path.join(log_folder, 'reader.log')
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.processing_folder = os.path.expanduser(Config.config['DATABASE']['local_processing_directory'])
         self.field = Config.config['COVARIATES']['field']
         self.covariates = Covariates()
+
+        if Config.config.has_option('TEMPLATE', 'mask'):
+            mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
+            self.mask_url = os.path.join(mask_folder, Config.config['TEMPLATE']['mask'])
+        else:
+            self.mask_url = None
 
     def load_subject_list(self, list_url, max_subjects=None):
         self.logger.info('loading subjects from ' + list_url)
@@ -33,12 +48,57 @@ class HcpReader:
     def _processed_tensor_url(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
 
-    def load_dti_tensor_image(self, subject):
-        dti_tensor = np.load(self._processed_tensor_url(subject))
-        return dti_tensor['dti_tensor']
+    def load_dti_tensor_image(self, subject, region=None, vectorize=True, normalize=True, mask=False):
+
+        try:
+            dti_tensor = np.load(self._processed_tensor_url(subject))['dti_tensor']
+        except FileNotFoundError:
+            raise SkipSubjectException(f'File for subject {subject} not found')
+
+        if region is not None:
+            slices = slice_from_list_of_pairs(region, null_offset=2)
+            dti_tensor = dti_tensor[slices]
+
+        if self.mask_url is not None:
+            dti_tensor = self.apply_mask(dti_tensor)
+
+        if vectorize is True:
+            dti_tensor = self.vectorize_channels(dti_tensor)
+
+        if normalize is True:
+            dti_tensor = self.normalize_channels(dti_tensor)
+
+        return dti_tensor.astype(np.float32)
 
     def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject).argmin()
+        return self.covariates.value(self.field, subject).argmin().astype(np.long)
+
+    def apply_mask(self, tensor):
+
+        if self.mask_url is None:
+            raise RuntimeError('No mask file set in the configuration file')
+
+        mask_tensor = nb.load(absolute_path(self.mask_url)).get_data()
+        return mask_tensor * tensor
+
+    @staticmethod
+    def vectorize_channels(tensor):
+        return tensor.reshape((tensor.shape[0]*tensor.shape[1], *tensor.shape[2:]))
+
+    @staticmethod
+    def normalize_channels(tensor):
+        einsums = {4: 'iklm->klm', 5: 'ijklm->klm'}
+        einsum_str = einsums[len(tensor.shape)]
+
+        norms = np.sqrt(np.einsum(einsum_str, tensor ** 2))
+        denominator = np.average(norms, weights=norms != 0)
+
+        return tensor/denominator
+
+    @staticmethod
+    def parse_region(region_str):
+        region_str_list = [int(x.strip()) for x in region_str.split(' ')]
+        return np.reshape(region_str_list, (3, 2)).tolist()
 
 
 class SkipSubjectException(Exception):
