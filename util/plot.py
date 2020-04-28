@@ -3,7 +3,7 @@ import numpy as np
 
 
 def plot_mid_slices(tensor):
-    slices = tensor.shape/2
+    slices = (np.array(tensor.shape)/2).astype(np.int)
     plot_tensor_slices(tensor, slices)
 
 

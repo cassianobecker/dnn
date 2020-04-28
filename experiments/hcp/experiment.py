@@ -22,6 +22,7 @@ class BatchTrain:
         self.scheduler = None
         self.device = None
         self.data_loaders = dict()
+        self.accumulation_steps = None
 
     def execute(self):
 
@@ -57,6 +58,11 @@ class BatchTrain:
         torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
+            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
+        else:
+            self.accumulation_steps = 1
 
         train_set = HcpDataset(self.device, 'train')
         self.data_loaders['train'] = HcpDataLoader(
