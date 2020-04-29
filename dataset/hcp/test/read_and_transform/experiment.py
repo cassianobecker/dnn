@@ -24,7 +24,7 @@ class ReadAndTransform:
         for subject in subjects:
 
             print(subject)
-            img = reader.load_dti_tensor_image(subject, region=region)
+            img = reader.load_dwi_tensor_image(subject, region=region)
             print(f'sparsity before {_sparsity(img)}')
 
             z = np.sqrt(np.einsum('iklm->klm', img ** 2))

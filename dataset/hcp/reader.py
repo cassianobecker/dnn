@@ -48,27 +48,36 @@ class HcpReader:
     def _processed_tensor_url(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'tensor_' + subject + '.npz')
 
-    def load_dti_tensor_image(self, subject, region=None, vectorize=True, normalize=True, mask=False):
+    def load_dwi_tensor_image(self, subject,
+                              region=None,
+                              vectorize=True,
+                              normalize=True,
+                              mask=False,
+                              max_img_channels=None,
+                              ):
 
         try:
-            dti_tensor = next(iter(np.load(self._processed_tensor_url(subject)).values()))
+            dwi_tensor = np.load(self._processed_tensor_url(subject))['dwi_tensor']
         except FileNotFoundError:
             raise SkipSubjectException(f'File for subject {subject} not found')
 
         if region is not None:
             slices = slice_from_list_of_pairs(region, null_offset=2)
-            dti_tensor = dti_tensor[slices]
+            dwi_tensor = dwi_tensor[slices]
 
         if self.mask_url is not None:
-            dti_tensor = self.apply_mask(dti_tensor)
+            dwi_tensor = self.apply_mask(dwi_tensor)
 
-        if vectorize is True:
-            dti_tensor = self.vectorize_channels(dti_tensor)
+        if vectorize is True and len(dwi_tensor.shape) > 4:
+            dwi_tensor = self.vectorize_channels(dwi_tensor)
 
         if normalize is True:
-            dti_tensor = self.normalize_channels(dti_tensor)
+            dwi_tensor = self.normalize_channels(dwi_tensor)
 
-        return dti_tensor.astype(np.float32)
+        if max_img_channels is not None:
+            dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
+
+        return dwi_tensor
 
     def load_covariate(self, subject):
         return self.covariates.value(self.field, subject).argmin().astype(np.long)

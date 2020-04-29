@@ -18,7 +18,7 @@ def process_odf_tensor(abs_path, subject):
     tensor = next(iter(tensor_dict.values()))
 
     print(f'reshaping odf tensor for subject {subject}:')
-    # check if dimensions need to be permuted
+    # check if dimensions need to be permuted (for odf pre-processing)
     if tensor.shape[3] == 45:
         tensor_reshaped = np.transpose(tensor, (3, 0, 1, 2))
     else:

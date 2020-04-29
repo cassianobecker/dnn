@@ -52,26 +52,44 @@ class BatchTrain:
     def _teardown(self):
         pass
 
-    # noinspection PyUnresolvedReferences
     def setup(self):
+
+        num_classes = 2
 
         torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
-            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
+        if Config.config.has_option('ALGORITHM', 'half_precision'):
+            half_precision = to_bool(Config.config['ALGORITHM']['half_precision'])
         else:
-            self.accumulation_steps = 1
+            half_precision = False
 
-        train_set = HcpDataset(self.device, 'train')
+        if Config.config.has_option('ALGORITHM', 'max_img_channels'):
+            max_img_channels = int(Config.config['ALGORITHM']['max_img_channels'])
+        else:
+            max_img_channels = None
+
+        train_set = HcpDataset(
+            self.device,
+            regime='train',
+            half_precision=half_precision,
+            max_img_channels=max_img_channels
+        )
+
         self.data_loaders['train'] = HcpDataLoader(
             train_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
         )
 
-        test_set = HcpDataset(self.device, 'test')
+        test_set = HcpDataset(
+            self.device,
+            regime='test',
+            half_precision=half_precision,
+            max_img_channels=max_img_channels
+        )
+
         self.data_loaders['test'] = HcpDataLoader(
             test_set,
             shuffle=False,
@@ -79,11 +97,10 @@ class BatchTrain:
         )
 
         img_dims = train_set.tensor_size()
-        num_classes = 2
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
-        self.model = model_class(img_dims, num_classes)
+        self.model = model_class(img_dims, num_classes, half_precision=half_precision)
 
         self.model.to(self.device)
 
@@ -99,6 +116,11 @@ class BatchTrain:
             step_size=1,
             gamma=float(Config.config['ALGORITHM']['gamma'])
         )
+
+        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
+            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
+        else:
+            self.accumulation_steps = 1
 
     def train_batch(self, epoch):
 

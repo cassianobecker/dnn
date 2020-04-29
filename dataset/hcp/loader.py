@@ -11,7 +11,7 @@ class HcpDataset(torch.utils.data.Dataset):
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, regime):
+    def __init__(self, device, regime, half_precision=False, max_img_channels=None):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
@@ -24,6 +24,9 @@ class HcpDataset(torch.utils.data.Dataset):
         self.logger.info('*** starting new {:} dataset'.format(regime))
 
         self.device = device
+        self.half_precision = half_precision
+        self.max_img_channels = max_img_channels
+
         self.reader = HcpReader()
 
         if Config.config.has_option('TRANSFORMS', 'region'):
@@ -46,16 +49,23 @@ class HcpDataset(torch.utils.data.Dataset):
 
     def __getitem__(self, idx):
         subject = self.subjects[idx]
-        return self.data_for_subject(subject, region=self.region)
+        return self.data_for_subject(
+            subject,
+            region=self.region,
+            max_img_channels=self.max_img_channels)
 
-    def data_for_subject(self, subject, region=None):
+    def data_for_subject(self, subject, region=None, max_img_channels=None):
 
         dti_tensor, target = None, None
 
         try:
             self.reader.logger.info("feeding subject {:}".format(subject))
 
-            dti_tensor = self.reader.load_dti_tensor_image(subject, region=region)
+            dti_tensor = self.reader.load_dwi_tensor_image(
+                subject,
+                region=region,
+                max_img_channels=max_img_channels
+            )
 
             target = self.reader.load_covariate(subject)
 

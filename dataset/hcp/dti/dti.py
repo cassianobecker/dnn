@@ -35,7 +35,6 @@ class HcpDtiProcessor:
         self.template_folder = absolute_path(Config.config['TEMPLATE']['folder'])
         self.template_file = Config.config['TEMPLATE']['template']
 
-
         self.dti_files = self._dti_files()
         self.converted_dti_files = self._converted_diti_files()
         self.registered_dti_files = self._registered_dti_files()
@@ -138,7 +137,7 @@ class HcpDtiProcessor:
         if not os.path.isdir(self._processed_tensor_folder(subject)):
             os.makedirs(self._processed_tensor_folder(subject))
         dti_tensor = self.build_dti_tensor_image(subject)
-        np.savez_compressed(self._processed_tensor_url(subject), dti_tensor=dti_tensor)
+        np.savez_compressed(self._processed_tensor_url(subject), dwi_tensor=dti_tensor)
 
     def _is_dti_processed(self, subject):
 

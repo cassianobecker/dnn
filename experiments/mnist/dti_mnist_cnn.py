@@ -7,7 +7,7 @@ import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 
-from nn.DtiConv3d import DtiConv3dTorch
+from nn.DtiConv3d import DwiConv3dTorch
 from metrics.dataset import batch_tensor_to_3dti
 
 
@@ -36,7 +36,7 @@ class Net(nn.Module):
         linear_size2 = 128
         number_of_classes = 10
 
-        self.conv1 = DtiConv3dTorch(c_out1, kernel_dims, strides)
+        self.conv1 = DwiConv3dTorch(c_out1, kernel_dims, strides)
         self.conv2 = nn.Conv3d(c_out1, c_out2, kernel_dims, 1)
 
         self.dropout1 = nn.Dropout3d(0.25)
