@@ -46,12 +46,12 @@ class HcpReader:
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
 
     def _processed_tensor_url(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
+        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'tensor_' + subject + '.npz')
 
     def load_dti_tensor_image(self, subject, region=None, vectorize=True, normalize=True, mask=False):
 
         try:
-            dti_tensor = np.load(self._processed_tensor_url(subject))['dti_tensor']
+            dti_tensor = next(iter(np.load(self._processed_tensor_url(subject)).values()))
         except FileNotFoundError:
             raise SkipSubjectException(f'File for subject {subject} not found')
 
