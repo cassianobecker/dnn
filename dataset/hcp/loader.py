@@ -11,17 +11,16 @@ class HcpDataset(torch.utils.data.Dataset):
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, regime, half_precision=False, max_img_channels=None):
+    def __init__(self, device, subjects, half_precision=False, max_img_channels=None):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
         if not os.path.exists(os.path.join(results_path, 'log')):
             os.mkdir(os.path.join(results_path, 'log'))
-        log_furl = os.path.join(results_path, 'log', 'downloader.log')
+        log_furl = os.path.join(results_path, 'log', 'dataloader.log')
 
         set_logger('HcpDataset', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpDataset')
-        self.logger.info('*** starting new {:} dataset'.format(regime))
 
         self.device = device
         self.half_precision = half_precision
@@ -35,14 +34,7 @@ class HcpDataset(torch.utils.data.Dataset):
         else:
             self.region = None
 
-        subject_file_url = Config.config['SUBJECTS'][f'{regime}_subjects_file']
-
-        if 'max_subjects' in Config.config['SUBJECTS'].keys():
-            max_subjects = Config.config['SUBJECTS']['max_subjects']
-        else:
-            max_subjects = None
-
-        self.subjects = self.reader.load_subject_list(subject_file_url, max_subjects=max_subjects)
+        self.subjects = subjects
 
     def __len__(self):
         return len(self.subjects)

@@ -9,6 +9,7 @@ from fwk.model import ModelHandler
 from util.lang import to_bool
 
 from dataset.hcp.loader import HcpDataset, HcpDataLoader
+from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
 
 
@@ -70,9 +71,11 @@ class BatchTrain:
         else:
             max_img_channels = None
 
+        train_subjects, test_subjects = Subjects.create_list_from_config()
+
         train_set = HcpDataset(
             self.device,
-            regime='train',
+            subjects=train_subjects,
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
@@ -85,7 +88,7 @@ class BatchTrain:
 
         test_set = HcpDataset(
             self.device,
-            regime='test',
+            subjects=test_subjects,
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
@@ -139,7 +142,13 @@ class BatchTrain:
 
             loss = F.nll_loss(outputs, targets)
             loss.backward()
-            self.optimizer.step()
+            # self.optimizer.step()
+
+            if (batch_idx + 1) % self.accumulation_steps == 0:
+                self.optimizer.step()
+                self.model.zero_grad()
+
+
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 

@@ -72,7 +72,7 @@ class DNN2(nn.Module):
 
         self.conv1 = DwiConv3dTorchVect(img_channels, c_out1, kernel_dims1, strides1, half_precision=half_precision)
         self.conv2 = nn.Conv3d(c_out1, c_out2, kernel_dims2, strides2)
-        self.conv3 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
+        # self.conv3 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
         self.max1 = nn.MaxPool3d(pool_size)
         self.dropout1 = nn.Dropout3d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)

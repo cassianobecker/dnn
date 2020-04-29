@@ -68,7 +68,7 @@ def process_all_odf_tensors(path):
     subjects = sorted(os.listdir(abs_path))
 
     for i, subject in enumerate(subjects):
-        if bool(re.match('\d{6}', subject)):
+        if bool(re.match('[0-9]{6}', subject)):
             print(f'---- {i} of {len(subjects)} ---')
             process_odf_tensor(abs_path, subject)
 
@@ -79,7 +79,7 @@ def process_all_dti_tensors(path):
     subjects = sorted(os.listdir(abs_path))
 
     for i, subject in enumerate(subjects):
-        if bool(re.match('\d{6}', subject)):
+        if bool(re.match('[0-9]{6}', subject)):
             print(f'---- {i} of {len(subjects)} ---')
             process_dti_tensor(abs_path, subject)
 
