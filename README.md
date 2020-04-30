@@ -1,6 +1,6 @@
-# DTI-DNN
+# DNN
 
-Short description here.
+Diffusion neural network
 
 ### Setting up
 
