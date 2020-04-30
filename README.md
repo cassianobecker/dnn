@@ -45,3 +45,4 @@ Diffusion neural network
 * Run `python schedule (local/debug/cbica_cpu/cbica_gpu) experiments/hcp/conf/args.ini`.
 	* The list of subjects for training and testing is located in  `experiments/hcp/conf/(test|train)_subjects.txt`.
     	* The results of you experiments will be stored in '~/.dnn/results' under a folder named according to the data and time when you then experiment was run.
+	* See list of covariates [here](https://wiki.humanconnectome.org/display/PublicData/HCP+Data+Dictionary+Public-+Updated+for+the+1200+Subject+Release#HCPDataDictionaryPublic-Updatedforthe1200SubjectRelease-Instrument:FluidIntelligence(PennProgressiveMatrices)).
