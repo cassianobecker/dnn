@@ -28,3 +28,27 @@ class SubjectTotals(Metric):
             records['number_of_test_subjects'] = self.number_of_test_subjects
 
         return records
+
+
+class SubjectList(Metric):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.train_subjects = None
+        self.test_subjects = None
+        self.regime = None
+
+    def on_after_setup(self, local_variables):
+        self.train_subjects = local_variables['self'].data_loaders['train'].dataset.subjects
+        self.test_subjects = local_variables['self'].data_loaders['test'].dataset.subjects
+        self.print_metric()
+
+    def text_record(self):
+
+        train_str = f'TRAIN:\n'
+        train_str = train_str + '\n'.join(self.train_subjects)
+
+        test_str = f'TEST:\n'
+        test_str = test_str + '\n'.join(self.test_subjects)
+
+        return train_str + '\n\n' + test_str

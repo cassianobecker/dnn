@@ -35,11 +35,12 @@ class HcpOdfProcessor:
 
     def process_subject(self, subject, delete_folders=False):
 
-        self.logger.info('processing subject {}'.format(subject))
+        self.logger.info(f'----- processing subject {subject}')
 
         if not os.path.exists(self._processed_tensor_url(subject)):
             self.database.get_diffusion(subject)
             odf_coeffs = self.fit_odf(subject)
+            odf_coeffs = np.transpose(odf_coeffs, (3, 0, 1, 2))
             self.save_odf_tensor_image(subject, odf_coeffs)
 
         if delete_folders is True:
@@ -47,9 +48,12 @@ class HcpOdfProcessor:
             self._delete_fsl_folder(subject)
 
     def save_odf_tensor_image(self, subject, odf_coeffs):
+
+        self.logger.info(f'saving subject {subject}')
+
         if not os.path.isdir(self._processed_tensor_folder(subject)):
             os.makedirs(self._processed_tensor_folder(subject))
-        np.savez_compressed(self._processed_tensor_url(subject), odf_tensor=odf_coeffs)
+        np.savez_compressed(self._processed_tensor_url(subject), dwi_tensor=odf_coeffs)
 
     def fit_odf(self, subject):
 
@@ -61,18 +65,19 @@ class HcpOdfProcessor:
         bvals, bvecs = read_bvals_bvecs(bval_fname, bvec_fname)
         gtab = gradient_table(bvals, bvecs)
 
+        self.logger.info(f'computing auto response subject {subject}')
+
         response, ratio = auto_response(gtab, data, roi_radius=10, fa_thr=0.7)
 
+        self.logger.info(f'creating csd model for subject {subject}')
+
         csd_model = ConstrainedSphericalDeconvModel(gtab, response)
+
+        self.logger.info(f'fitting model for subject {subject}')
 
         csd_fit = csd_model.fit(data)
 
         return csd_fit.shm_coeff
-
-    def build_odf_tensor_image(self, subject):
-        odf_dir = self._odf_folder(subject)
-        odf_tensor = 0
-        return odf_tensor
 
     def _processed_tensor_folder(self, subject):
         return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)

@@ -9,6 +9,7 @@ from fwk.model import ModelHandler
 from util.lang import to_bool
 
 from dataset.hcp.loader import HcpDataset, HcpDataLoader
+from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
 
 
@@ -22,6 +23,7 @@ class BatchTrain:
         self.scheduler = None
         self.device = None
         self.data_loaders = dict()
+        self.accumulation_steps = None
 
     def execute(self):
 
@@ -51,21 +53,46 @@ class BatchTrain:
     def _teardown(self):
         pass
 
-    # noinspection PyUnresolvedReferences
     def setup(self):
+
+        num_classes = 2
 
         torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        train_set = HcpDataset(self.device, 'train')
+        if Config.config.has_option('ALGORITHM', 'half_precision'):
+            half_precision = to_bool(Config.config['ALGORITHM']['half_precision'])
+        else:
+            half_precision = False
+
+        if Config.config.has_option('ALGORITHM', 'max_img_channels'):
+            max_img_channels = int(Config.config['ALGORITHM']['max_img_channels'])
+        else:
+            max_img_channels = None
+
+        train_subjects, test_subjects = Subjects.create_list_from_config()
+
+        train_set = HcpDataset(
+            self.device,
+            subjects=train_subjects,
+            half_precision=half_precision,
+            max_img_channels=max_img_channels
+        )
+
         self.data_loaders['train'] = HcpDataLoader(
             train_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
         )
 
-        test_set = HcpDataset(self.device, 'test')
+        test_set = HcpDataset(
+            self.device,
+            subjects=test_subjects,
+            half_precision=half_precision,
+            max_img_channels=max_img_channels
+        )
+
         self.data_loaders['test'] = HcpDataLoader(
             test_set,
             shuffle=False,
@@ -73,11 +100,10 @@ class BatchTrain:
         )
 
         img_dims = train_set.tensor_size()
-        num_classes = 2
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
-        self.model = model_class(img_dims, num_classes)
+        self.model = model_class(img_dims, num_classes, half_precision=half_precision)
 
         self.model.to(self.device)
 
@@ -93,6 +119,11 @@ class BatchTrain:
             step_size=1,
             gamma=float(Config.config['ALGORITHM']['gamma'])
         )
+
+        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
+            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
+        else:
+            self.accumulation_steps = 1
 
     def train_batch(self, epoch):
 
@@ -111,7 +142,13 @@ class BatchTrain:
 
             loss = F.nll_loss(outputs, targets)
             loss.backward()
-            self.optimizer.step()
+            # self.optimizer.step()
+
+            if (batch_idx + 1) % self.accumulation_steps == 0:
+                self.optimizer.step()
+                self.model.zero_grad()
+
+
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
