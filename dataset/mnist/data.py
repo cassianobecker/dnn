@@ -9,12 +9,17 @@ import struct
 import array
 import numpy as np
 from urllib.request import urlretrieve
+from util.path import absolute_path
+
+relative_path = '~/.dnn/datasets/mnist'
+mnist_path = absolute_path(os.path.join(os.path.expanduser(relative_path), 'data'))
 
 
 def download(url, filename):
-    if not os.path.exists('data'):
-        os.makedirs('data')
-    out_file = os.path.join('data', filename)
+
+    if not os.path.exists(mnist_path):
+        os.makedirs(mnist_path)
+    out_file = os.path.join(mnist_path, filename)
     if not os.path.isfile(out_file):
         urlretrieve(url, out_file)
 
@@ -38,10 +43,10 @@ def mnist():
                      't10k-labels-idx1-ubyte.gz']:
         download(base_url + filename, filename)
 
-    train_images = parse_images('data/train-images-idx3-ubyte.gz')
-    train_labels = parse_labels('data/train-labels-idx1-ubyte.gz')
-    test_images = parse_images('data/t10k-images-idx3-ubyte.gz')
-    test_labels = parse_labels('data/t10k-labels-idx1-ubyte.gz')
+    train_images = parse_images(mnist_path + '/train-images-idx3-ubyte.gz')
+    train_labels = parse_labels(mnist_path + '/train-labels-idx1-ubyte.gz')
+    test_images = parse_images(mnist_path + '/t10k-images-idx3-ubyte.gz')
+    test_labels = parse_labels(mnist_path + '/t10k-labels-idx1-ubyte.gz')
 
     return train_images, train_labels, test_images, test_labels
 
