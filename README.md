@@ -38,6 +38,7 @@ Diffusion neural network
 * Go the root folder of the project.
 * Run `python schedule (local/debug/cbica_cpu) dataset/hcp/dti/scripts/conf/args.ini`. 
 	* The downloaded and post-processed files will be stored in `~/.dnn/datasets/hcp`, accessible from your home folder.
+	* On the UPenn CBICA cluster, you can use Cassiano's processed data in `/cbica/home/beckerc/.dnn/datasets/hcp/processing`. Set `local_processing_directory` in your `.ini` experiment configuration file in `experiments/hcp/conf`.
 
 #### Training a Diffusion-CNN
 * Select the `arg.ini` file describing your experiment.
