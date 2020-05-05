@@ -55,8 +55,6 @@ class BatchTrain:
 
     def setup(self):
 
-        num_classes = 2
-
         torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -101,6 +99,10 @@ class BatchTrain:
 
         img_dims = train_set.tensor_size()
 
+        if Config.config.has_option('COVARIATES', 'num_classes'):
+            num_classes = Config.config['COVARIATES']['num_classes']
+        else: # if not, do regression
+            num_classes = 2
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
         self.model = model_class(img_dims, num_classes, half_precision=half_precision)
