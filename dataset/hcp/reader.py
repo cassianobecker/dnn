@@ -80,7 +80,7 @@ class HcpReader:
         return dwi_tensor
 
     def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject).argmin().astype(np.long)
+        return self.covariates.value(self.field, subject)
 
     def apply_mask(self, tensor):
 

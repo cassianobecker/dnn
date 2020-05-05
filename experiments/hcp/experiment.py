@@ -98,11 +98,8 @@ class BatchTrain:
         )
 
         img_dims = train_set.tensor_size()
+        num_classes = train_set.number_of_classes()
 
-        if Config.config.has_option('COVARIATES', 'num_classes'):
-            num_classes = Config.config['COVARIATES']['num_classes']
-        else: # if not, do regression
-            num_classes = 2
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
         self.model = model_class(img_dims, num_classes, half_precision=half_precision)
