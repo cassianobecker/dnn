@@ -139,15 +139,13 @@ class BatchTrain:
 
             outputs = self.model(dti_tensors)
 
-            loss = F.nll_loss(outputs, targets)
+            loss = F.nll_loss(outputs, targets.view(-1, 1).argmax(dim=0))
             loss.backward()
             # self.optimizer.step()
 
             if (batch_idx + 1) % self.accumulation_steps == 0:
                 self.optimizer.step()
                 self.model.zero_grad()
-
-
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
@@ -156,12 +154,10 @@ class BatchTrain:
         self.model.eval()
 
         with torch.no_grad():
-
             for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
-
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
+                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
                                        targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)

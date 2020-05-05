@@ -25,10 +25,10 @@ class ClassificationAccuracy(Metric):
         if regime not in self.stats.keys():
             self.stats[regime] = ClassificationStatistics()
 
-        self.stats[regime].correct += predicted.eq(targets.view_as(predicted)).sum().item()
+        self.stats[regime].correct += predicted.eq(targets.view(-1, 1).argmax(dim=0)).sum().item()
         self.stats[regime].total += predicted.shape[0]
         self.stats[regime].predicted.extend(predicted.tolist()[0])
-        self.stats[regime].targets.extend(targets.tolist())
+        self.stats[regime].targets.extend(targets.view(-1, 1).argmax(dim=0).tolist())
 
     def on_before_epoch(self, local_variables):
         self.stats = dict()
