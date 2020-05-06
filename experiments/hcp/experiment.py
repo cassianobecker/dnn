@@ -11,7 +11,7 @@ from util.lang import to_bool
 from dataset.hcp.loader import HcpDataset, HcpDataLoader
 from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
-
+from util.encode import one_hot_to_int
 
 class BatchTrain:
 
@@ -139,7 +139,7 @@ class BatchTrain:
 
             outputs = self.model(dti_tensors)
 
-            loss = F.nll_loss(outputs, targets.view(-1, 1).argmax(dim=0))
+            loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss.backward()
             # self.optimizer.step()
 
