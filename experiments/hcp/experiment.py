@@ -11,7 +11,7 @@ from util.lang import to_bool
 from dataset.hcp.loader import HcpDataset, HcpDataLoader
 from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
-
+from util.encode import one_hot_to_int
 
 class BatchTrain:
 
@@ -54,8 +54,6 @@ class BatchTrain:
         pass
 
     def setup(self):
-
-        num_classes = 2
 
         torch.manual_seed(1234)
 
@@ -100,6 +98,7 @@ class BatchTrain:
         )
 
         img_dims = train_set.tensor_size()
+        num_classes = train_set.number_of_classes()
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
@@ -140,15 +139,13 @@ class BatchTrain:
 
             outputs = self.model(dti_tensors)
 
-            loss = F.nll_loss(outputs, targets)
+            loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss.backward()
             # self.optimizer.step()
 
             if (batch_idx + 1) % self.accumulation_steps == 0:
                 self.optimizer.step()
                 self.model.zero_grad()
-
-
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
@@ -157,12 +154,10 @@ class BatchTrain:
         self.model.eval()
 
         with torch.no_grad():
-
             for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
-
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
+                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
                                        targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)

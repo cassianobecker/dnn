@@ -70,6 +70,9 @@ class HcpDataset(torch.utils.data.Dataset):
         tensor_shape = self.__getitem__(0)[0].shape
         return tensor_shape
 
+    def number_of_classes(self):
+        num_classes = self.__getitem__(0)[1].size
+        return num_classes
 
 class HcpDataLoader(torch.utils.data.DataLoader):
 
