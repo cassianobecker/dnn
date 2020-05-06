@@ -1,7 +1,8 @@
-from fwk.metrics import Metric
 import numpy as np
 import sklearn.metrics
 
+from fwk.metrics import Metric
+from util.encode import one_hot_to_int
 
 class ClassificationAccuracy(Metric):
 
@@ -25,10 +26,10 @@ class ClassificationAccuracy(Metric):
         if regime not in self.stats.keys():
             self.stats[regime] = ClassificationStatistics()
 
-        self.stats[regime].correct += predicted.eq(targets.view_as(predicted)).sum().item()
+        self.stats[regime].correct += predicted.eq(one_hot_to_int(targets)).sum().item()
         self.stats[regime].total += predicted.shape[0]
         self.stats[regime].predicted.extend(predicted.tolist()[0])
-        self.stats[regime].targets.extend(targets.tolist())
+        self.stats[regime].targets.extend(one_hot_to_int(targets).tolist())
 
     def on_before_epoch(self, local_variables):
         self.stats = dict()
