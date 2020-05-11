@@ -1,6 +1,6 @@
 #! /bin/bash
 
-source activate dnn2
+source activate dnn-cluster
 
 echo Host name: `hostname`
 
