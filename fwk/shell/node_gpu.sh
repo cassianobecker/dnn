@@ -1,7 +1,7 @@
 
 #! /bin/bash
 
-source activate dnn2
+source activate dnn-cluster
 
 nvcc --version
 echo Host name: `hostname`
