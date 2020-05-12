@@ -12,7 +12,7 @@ from urllib.request import urlretrieve
 from util.path import absolute_path
 
 relative_path = '~/.dnn/datasets/mnist'
-mnist_path = absolute_path(os.path.join(os.path.expanduser(relative_path), 'data'))
+mnist_path = os.path.join(os.path.expanduser(relative_path), 'mirror')
 
 
 def download(url, filename):

@@ -55,9 +55,18 @@ class ConfigProductGenerator:
             number_of_batches = int(self.config['SUBJECTS']['number_of_batches'])
             self.config['SUBJECTS']['subject_batch_index'] = range_to_comma_separated_string(number_of_batches)
 
+    def _add_image_batches(self, session, key):
+
+        if session == 'IMAGES' and key == 'number_of_batches':
+            number_of_batches = int(self.config['IMAGES']['number_of_batches'])
+            self.config['IMAGES']['image_batch_index'] = range_to_comma_separated_string(number_of_batches)
+
     def _pre_process_config(self):
 
-        pre_processing_functions = [self._add_subject_batches]
+        pre_processing_functions = [
+            self._add_subject_batches,
+            self._add_image_batches
+        ]
 
         for session in self.config.keys():
             for key in self.config[session]:
