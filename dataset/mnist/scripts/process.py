@@ -11,7 +11,7 @@ class MnistProcessorScript:
 
         image_batch_index = int(Config.config['IMAGES']['image_batch_index'])
         number_of_batches = int(Config.config['IMAGES']['number_of_batches'])
-        dataset = int(Config.config['DATABASE']['mnist_dataset'])
+        dataset = Config.config['DATABASE']['mnist_dataset']
 
         if Config.config.has_option('IMAGES', 'max_images_per_batch'):
             max_img = int(Config.config['IMAGES']['max_images_per_batch'])
