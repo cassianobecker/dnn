@@ -46,24 +46,33 @@ class MnistProcessor:
 
     def process_image(self, image_idx, regime):
 
-        self.logger.info('processing image {}'.format(image_idx))
+        self.logger.info('--- processing image {}'.format(image_idx))
 
+        self.logger.info(f'generating image')
         image_2d, label = self.database.get_image(image_idx, regime=regime)
-
         image = MnistDiffusionImageModel(image_2d, depth=self.depth)
+        self.logger.info(f'saving image')
         image.save_image(self._path_for_idx(image_idx, regime))
 
+        self.logger.info(f'generating bvals and bvecs')
         image.set_b0_image(same=True, weight=3000)
         image.generate_bvals_bvecs(n_bvals=200)
+        self.logger.info(f'saving bvals and bvecs')
         image.save_bvals_bvecs(self._path_for_idx(image_idx, regime))
 
+        self.logger.info(f'generating volumes')
         image.generate_diffusion_volumes()
+        self.logger.info(f'saving volumes')
         image.save_diffusion_volumes(self._path_for_idx(image_idx, regime))
 
+        self.logger.info(f'fitting dti')
         image.fit_dti()
+        self.logger.info(f'saving dti')
         image.save_dti(self._path_for_idx(image_idx, regime))
 
+        self.logger.info(f'fitting odf')
         image.fit_odf()
+        self.logger.info(f'saving odf')
         image.save_odf(self._path_for_idx(image_idx, regime))
 
 
@@ -111,8 +120,6 @@ class MnistDiffusionImageModel:
         diffusion_volumes = []
 
         for i, bvec in enumerate(self.bvecs.tolist()):
-
-            self.logger.debug('generating volume {i + 1} of {len(self.bvals)}')
 
             bval = self.bvals[i]
             volume = self._diffs_at_direction_tensor(bval, np.array(bvec), self.radius)
@@ -210,10 +217,7 @@ class MnistDiffusionImageModel:
 
         tensor_model = dti.TensorModel(gtab, fit_method='OLS')
 
-        self.logger.info(f'fitting dti ... ')
-
         tensor_fit = tensor_model.fit(self.volumes, mask=self.mask)
-        self.logger.info('done.')
 
         dti_coeffs = dti.lower_triangular(tensor_fit.quadratic_form)
 
@@ -244,13 +248,10 @@ class MnistDiffusionImageModel:
 
     def fit_odf(self):
 
-        self.logger.info(f'fitting odf')
-
         gtab = gradient_table(self.bvals, self.bvecs)
         response, ratio = auto_response(gtab, self.volumes, roi_radius=10, fa_thr=0.7)
 
         csd_model = ConstrainedSphericalDeconvModel(gtab, response)
-        self.logger.info('done.')
 
         csd_fit = csd_model.fit(self.volumes)
         self.odf = csd_fit.shm_coeff
