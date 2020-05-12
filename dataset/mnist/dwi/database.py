@@ -27,7 +27,7 @@ class MnistDatabase:
         return np.reshape(image, (28, 28)), label
 
     def image_batch(self, batch_index, number_of_batches, regime):
-        batch_size = int(self.number_of_images(regime) / (number_of_batches - 1))
+        batch_size = int(self.number_of_images(regime) / number_of_batches)
         initial = int(batch_index * batch_size)
         final = int((batch_index + 1) * batch_size)
         return range(self.number_of_images(regime))[initial:final]
@@ -97,7 +97,7 @@ class KmnistDatabase:
 
     def image_batch(self, batch_index, number_of_batches, regime):
 
-        batch_size = int(self.number_of_images(regime) / (number_of_batches - 1))
+        batch_size = int(self.number_of_images(regime) / number_of_batches)
         initial = int(batch_index * batch_size)
         final = int((batch_index + 1) * batch_size)
         return range(self.number_of_images(regime))[initial:final]

@@ -26,3 +26,6 @@ dependencies:
     - sklearn
     - sphinx_rtd_theme
     - opencv-python
+    - scikit-image
+    - dipy
+
