@@ -9,7 +9,10 @@ def pad_image(image, radius):
 
 def successive_differences(image, direction, radius, function_over_diff=None, normalize=True):
     # normalize direction
-    direction = np.array(direction) / np.linalg.norm(np.array(direction))
+
+    norm_direction = np.linalg.norm(np.array(direction))
+    if norm_direction > 0:
+        direction = np.array(direction) / norm_direction
 
     # pad image
     padded_image = pad_image(image, radius)
