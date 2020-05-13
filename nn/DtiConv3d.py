@@ -88,6 +88,62 @@ class DwiConv3dTorchVectFirst(nn.Module):
         return y
 
 
+class DwiConv3dTorchVectChol(nn.Module):
+    def __init__(self, in_channels, out_channels, half_precision=False):
+        super(DwiConv3dTorchVectChol, self).__init__()
+
+        if in_channels != 6:
+            raise RuntimeError('Cholesky layer only compatible with diffusion tensor of dimension 6.')
+
+        self.stride = 1
+        self.out_channels = out_channels
+        self.kernel_size = 1
+        self.dti_dim = in_channels
+
+        self.weight = nn.Parameter(torch.Tensor(self.dti_dim, out_channels))
+
+        if half_precision is True:
+            self.weight.half()
+
+        self.register_parameter('weight', self.weight)
+        self.weight.data.uniform_(-0.1, 0.1)
+
+    def forward(self, x):
+
+        self.weight
+        lifted_weight = torch.empty_like(self.weight)
+
+        # FSL Convention:
+        # 0: Dxx - l11
+        # 1: Dxy - l12, l21
+        # 2: Dxz - l13, l31
+        # 3: Dyy - l22
+        # 4: Dyz - l23, l32
+        # 5: Dzz - l33
+
+        # Dxx: l11 ^ 2
+        lifted_weight[0, :] = self.weight[0, :] ** 2
+
+        # Dxy: 2 * l21 * l11
+        lifted_weight[1, :] = 2 * self.weight[1, :] * self.weight[0, :]
+
+        # Dxz: 2 * l31 * l21
+        lifted_weight[2, :] = 2 * self.weight[2, :] * self.weight[1, :]
+
+        # Dyy: l21 ^ 2 +  l22 ^ 2
+        lifted_weight[3, :] = self.weight[1, :] ** 2 + self.weight[3, :] ** 2
+
+        # Dyz: 2 * (l31 * l21  +  l32 * l22)
+        lifted_weight[4, :] = 2 * (self.weight[2, :] * self.weight[1, :] + self.weight[4, :] * self.weight[3, :])
+
+        # Dzz: l13 ^ 2 + l23 ^ 2 + l33 ^ 2
+        lifted_weight[5, :] = self.weight[2, :] ** 2  + self.weight[4, :] ** 2 + self.weight[5, :] ** 2
+
+        y = torch.matmul(x.permute(2, 3, 4, 0, 1), lifted_weight).permute(3, 4, 0, 1, 2)
+
+        return y
+
+
 class DwiConv3d(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size, skip, half_precision=False):
         super(DwiConv3d, self).__init__()

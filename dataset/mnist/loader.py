@@ -1,17 +1,17 @@
 import os
 import torch.utils.data
 
-from dataset.hcp.reader import HcpReader, SkipSubjectException
+from dataset.mnist.reader import MnistReader, SkipImageException
 from util.logging import get_logger, set_logger
 from fwk.config import Config
 
 
-class HcpDataset(torch.utils.data.Dataset):
+class MnistDataset(torch.utils.data.Dataset):
     """
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, subjects, half_precision=False, max_img_channels=None):
+    def __init__(self, device, images, regime, half_precision=False, max_img_channels=None):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
@@ -26,7 +26,7 @@ class HcpDataset(torch.utils.data.Dataset):
         self.half_precision = half_precision
         self.max_img_channels = max_img_channels
 
-        self.reader = HcpReader()
+        self.reader = MnistReader(regime)
 
         if Config.config.has_option('TRANSFORMS', 'region'):
             region_str = Config.config['TRANSFORMS']['region']
@@ -34,44 +34,44 @@ class HcpDataset(torch.utils.data.Dataset):
         else:
             self.region = None
 
-        self.subjects = subjects
+        self.images = images
 
     def __len__(self):
-        return len(self.subjects)
+        return len(self.images)
 
     def __getitem__(self, idx):
-        subject = self.subjects[idx]
-        return self.data_for_subject(
-            subject,
+        image = self.images[idx]
+        return self.data_for_idx(
+            image,
             region=self.region,
             max_img_channels=self.max_img_channels)
 
-    def data_for_subject(self, subject, region=None, max_img_channels=None):
+    def data_for_idx(self, idx, region=None, max_img_channels=None):
 
         dti_tensor, target = None, None
 
         try:
-            self.reader.logger.info("feeding subject {:}".format(subject))
+            self.reader.logger.info("feeding image {:}".format(idx))
 
             dti_tensor = self.reader.load_dwi_tensor_image(
-                subject,
+                idx,
                 region=region,
                 max_img_channels=max_img_channels
             )
 
-            target = self.reader.load_covariate(subject)
+            target = self.reader.load_covariate(idx)
 
-        except SkipSubjectException:
-            self.reader.logger.warning("skipping subject {:}".format(subject))
+        except SkipImageException:
+            self.reader.logger.warning("skipping images {:}".format(idx))
 
-        return dti_tensor, target, subject
+        return dti_tensor, target, idx
 
     def tensor_size(self):
         tensor_shape = self.__getitem__(0)[0].shape
         return tensor_shape
 
 
-class HcpDataLoader(torch.utils.data.DataLoader):
+class MnistDataLoader(torch.utils.data.DataLoader):
 
     def __init__(self, *args, **kwargs):
-        super(HcpDataLoader, self).__init__(*args, **kwargs)
+        super(MnistDataLoader, self).__init__(*args, **kwargs)

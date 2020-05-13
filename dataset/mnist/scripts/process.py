@@ -28,6 +28,7 @@ class MnistProcessorScript:
 
                 print(f'processing image {image_idx + 1} of {len(image_idxs)}')
                 try:
-                    processor.process_image(image_idx, regime)
+                    # processor.process_image(image_idx, regime)
+                    processor.process_labels(image_idx, regime)
                 except Exception as e:
                     print(e)

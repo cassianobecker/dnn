@@ -8,8 +8,8 @@ from fwk.metrics import MetricsHandler
 from fwk.model import ModelHandler
 from util.lang import to_bool
 
-from dataset.hcp.loader import HcpDataset, HcpDataLoader
-from dataset.hcp.subjects import Subjects
+from dataset.mnist.loader import MnistDataset, MnistDataLoader
+from dataset.mnist.images import Images
 from util.lang import class_for_name
 
 
@@ -55,7 +55,7 @@ class BatchTrain:
 
     def setup(self):
 
-        num_classes = 2
+        num_classes = 10
 
         torch.manual_seed(1234)
 
@@ -71,29 +71,31 @@ class BatchTrain:
         else:
             max_img_channels = None
 
-        train_subjects, test_subjects = Subjects.create_list_from_config()
+        train_images, test_images = Images.create_list_from_config()
 
-        train_set = HcpDataset(
+        train_set = MnistDataset(
             self.device,
-            subjects=train_subjects,
+            images=train_images,
+            regime='train',
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
 
-        self.data_loaders['train'] = HcpDataLoader(
+        self.data_loaders['train'] = MnistDataLoader(
             train_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
         )
 
-        test_set = HcpDataset(
+        test_set = MnistDataset(
             self.device,
-            subjects=test_subjects,
+            images=test_images,
+            regime='test',
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
 
-        self.data_loaders['test'] = HcpDataLoader(
+        self.data_loaders['test'] = MnistDataLoader(
             test_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['test_batch_size'])

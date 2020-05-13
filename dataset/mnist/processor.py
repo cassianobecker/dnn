@@ -7,7 +7,7 @@ from dipy.io.image import save_nifti
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.reconst.csdeconv import auto_response
 
-from dataset.mnist.dwi.database import MnistDatabase, KmnistDatabase
+from dataset.mnist.database import MnistDatabase, KmnistDatabase
 from dataset.mnist.dwi.diff_nd import successive_differences
 from dataset.mnist.dwi.tube import tubify
 from fwk.config import Config
@@ -44,6 +44,14 @@ class MnistProcessor:
     def _path_for_idx(self, image_idx, regime):
         return os.path.join(self.processing_folder, regime, str(image_idx))
 
+    def process_labels(self, image_idx, regime):
+
+        self.logger.info('--- processing image {}'.format(image_idx))
+        image_2d, label = self.database.get_image(image_idx, regime=regime)
+        image = MnistDiffusionImageModel(image_2d, depth=self.depth)
+        self.logger.info(f'saving image')
+        image.save_label(self._path_for_idx(image_idx, regime), label)
+
     def process_image(self, image_idx, regime):
 
         self.logger.info('--- processing image {}'.format(image_idx))
@@ -53,6 +61,7 @@ class MnistProcessor:
         image = MnistDiffusionImageModel(image_2d, depth=self.depth)
         self.logger.info(f'saving image')
         image.save_image(self._path_for_idx(image_idx, regime))
+        image.save_label(self._path_for_idx(image_idx, regime), label)
 
         self.logger.info(f'generating bvals and bvecs')
         image.set_b0_image(same=True, weight=3000)
@@ -198,6 +207,17 @@ class MnistDiffusionImageModel:
         self.make_mask()
 
         save_nifti(url, self.mask, self.affine)
+
+    def save_label(self, relative_path, label):
+
+        name = 'label.nii.gz'
+        path = os.path.expanduser(relative_path)
+        url = os.path.join(path, name)
+
+        if not os.path.isdir(path):
+            os.makedirs(path)
+
+        save_nifti(url, label, self.affine)
 
     def save_diffusion_volumes(self, relative_path):
 

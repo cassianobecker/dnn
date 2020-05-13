@@ -20,14 +20,14 @@ class ClassificationAccuracy(Metric):
         outputs = local_variables['outputs'].cpu()
         targets = local_variables['targets'].cpu()
 
-        predicted = outputs.argmax(dim=1, keepdim=True).cpu()
+        predicted = outputs.argmax(dim=1).cpu()
 
         if regime not in self.stats.keys():
             self.stats[regime] = ClassificationStatistics()
 
         self.stats[regime].correct += predicted.eq(targets.view_as(predicted)).sum().item()
         self.stats[regime].total += predicted.shape[0]
-        self.stats[regime].predicted.extend(predicted.tolist()[0])
+        self.stats[regime].predicted.extend(predicted.tolist())
         self.stats[regime].targets.extend(targets.tolist())
 
     def on_before_epoch(self, local_variables):
