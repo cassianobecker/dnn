@@ -57,8 +57,8 @@ class KmnistDatabase:
     def get_image(self, image_idx, regime='train'):
 
         image = self.images[regime][image_idx, :, :] / 255
-        label = self.labels[regime][image_idx]
-
+        label = np.zeros(10)
+        label[self.labels[regime][image_idx]] = 1
         return image, label
 
     def number_of_images(self, regime):

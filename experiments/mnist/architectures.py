@@ -70,8 +70,8 @@ class DNN2(nn.Module):
         c_out2 = 3*4*10
         pool_size = 2
 
-        self.conv1 = DwiConv3dTorchVectChol(img_channels, c_out1, half_precision=half_precision)
-        # self.conv1 = DwiConv3dTorchVect(img_channels, c_out1, kernel_dims1, strides1, half_precision=half_precision)
+        # self.conv1 = DwiConv3dTorchVectChol(img_channels, c_out1, half_precision=half_precision)
+        self.conv1 = DwiConv3dTorchVect(img_channels, c_out1, kernel_dims1, strides1, half_precision=half_precision)
         self.conv2 = nn.Conv3d(c_out1, c_out2, kernel_dims2, strides2)
         # self.conv3 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
         self.max1 = nn.MaxPool3d(pool_size)

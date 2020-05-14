@@ -27,6 +27,8 @@ class MnistReader:
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
+        self.model = Config.config['IMAGES']['model']
+
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
             self.mask_url = os.path.join(mask_folder, Config.config['TEMPLATE']['mask'])
@@ -46,7 +48,8 @@ class MnistReader:
         return os.path.join(self.processing_folder, self.regime, idx)
 
     def _processed_tensor_url(self, idx):
-        return os.path.join(self.processing_folder, self.regime, idx, 'dti.nii.gz')
+        tensor_name = {'odf': 'odf.nii.gz', 'dti': 'dti.nii.gz'}
+        return os.path.join(self.processing_folder, self.regime, idx, tensor_name[self.model])
 
     def _label_url(self, idx):
         return os.path.join(self.processing_folder, self.regime, idx, 'label.nii.gz')
@@ -90,9 +93,9 @@ class MnistReader:
         label = load_nifti(label_url)[0]
 
         if label.shape[0] > 1:
-            label = np.argmax(label)
+            label_idx = np.argmax(label)
 
-        return label
+        return label_idx
 
     def apply_mask(self, tensor):
 
