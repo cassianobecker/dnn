@@ -30,7 +30,7 @@ class TrainBatchCounter(Metric):
         self.regime = 'train'
 
     def on_before_train_batch(self, local_variables):
-        self.number_of_subjects = len(local_variables['self'].data_loaders[self.regime].dataset.images)
+        self.number_of_subjects = len(local_variables['self'].data_loaders[self.regime].dataset.subjects)
         self.subjects_per_batch = int(Config.config['ALGORITHM'][f'{self.regime}_batch_size'])
         self.batch_idx = local_variables['batch_idx']
         self.number_of_batches = int(self.number_of_subjects / self.subjects_per_batch)
