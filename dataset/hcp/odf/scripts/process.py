@@ -25,6 +25,7 @@ class OdfProcessorScript:
             print('processing subject {}'.format(subject))
             try:
                 processor.process_subject(subject, delete_folders=False)
+
             except Exception as e:
                 print(e)
 

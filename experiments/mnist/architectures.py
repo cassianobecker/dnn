@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as func
 
-from nn.DtiConv3d import DwiConv3dTorch, DwiConv3dTorchVect, DwiConv3dTorchVectFirst, DwiConv3dTorchVectChol
+from nn.DtiConv3d import DwiConv3dTorch, DwiConv3dTorchVect, DwiConv3dUnitKernel, DwiConv3dDtiChol
 from util.architecture import Dimensions
 
 
@@ -120,7 +120,7 @@ class DNN2Conv1(nn.Module):
         c_out2 = 3*4*10
         pool_size = 5
 
-        self.conv1 = DwiConv3dTorchVectFirst(img_channels, c_out1, half_precision=half_precision)
+        self.conv1 = DwiConv3dUnitKernel(img_channels, c_out1, half_precision=half_precision)
         self.conv2 = nn.Conv3d(c_out1, c_out2, kernel_dims2, strides2)
         # self.conv3 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
         self.max1 = nn.MaxPool3d(pool_size)
@@ -169,7 +169,7 @@ class DNN2ConvDeep1(nn.Module):
         pool_size1 = 5
         pool_size = 2
 
-        self.conv1 = DwiConv3dTorchVectFirst(img_channels, c_out1, half_precision=half_precision)
+        self.conv1 = DwiConv3dUnitKernel(img_channels, c_out1, half_precision=half_precision)
         self.conv2 = nn.Conv3d(c_out1, c_out2, kernel_dims, strides)
         self.conv3 = nn.Conv3d(c_out2, c_out2, kernel_dims, strides)
 

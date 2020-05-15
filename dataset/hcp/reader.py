@@ -51,8 +51,9 @@ class HcpReader:
     def load_dwi_tensor_image(self, subject,
                               region=None,
                               vectorize=True,
-                              normalize=True,
+                              normalize=False,
                               mask=False,
+                              scale=1.,
                               max_img_channels=None,
                               ):
 
@@ -74,6 +75,9 @@ class HcpReader:
         if normalize is True:
             dwi_tensor = self.normalize_channels(dwi_tensor)
 
+        if scale is not None:
+            dwi_tensor = dwi_tensor * scale
+
         if max_img_channels is not None:
             dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
 
@@ -92,7 +96,28 @@ class HcpReader:
 
     @staticmethod
     def vectorize_channels(tensor):
-        return tensor.reshape((tensor.shape[0]*tensor.shape[1], *tensor.shape[2:]))
+
+        # use FSL convention (see https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FDT/UserGuide)
+        # 0,0 Dxx
+        # 0,1 Dxy
+        # 0,2 Dxz
+        # 1,1 Dyy
+        # 1,2 Dyz
+        # 2,2 Dzz
+
+        if not (tensor.shape[0], tensor.shape[1]) == (3, 3):
+            raise RuntimeError('Vectorization only applicable for (3, 3) DTI matrices.')
+
+        new_tensor = np.stack((
+            tensor[0, 0, :, :, :],
+            tensor[0, 1, :, :, :],
+            tensor[0, 2, :, :, :],
+            tensor[1, 1, :, :, :],
+            tensor[1, 2, :, :, :],
+            tensor[2, 2, :, :, :],
+        ), axis=0)
+
+        return new_tensor
 
     @staticmethod
     def normalize_channels(tensor):

@@ -34,6 +34,8 @@ class HcpDataset(torch.utils.data.Dataset):
         else:
             self.region = None
 
+        self.scale = int(Config.get_option('TRANSFORMS', 'scale', 1))
+
         self.subjects = subjects
 
     def __len__(self):
@@ -56,7 +58,8 @@ class HcpDataset(torch.utils.data.Dataset):
             dti_tensor = self.reader.load_dwi_tensor_image(
                 subject,
                 region=region,
-                max_img_channels=max_img_channels
+                max_img_channels=max_img_channels,
+                scale=self.scale
             )
 
             target = self.reader.load_covariate(subject)

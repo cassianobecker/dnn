@@ -24,6 +24,10 @@ class Config:
     def get_config(cls):
         return cls.config
 
+    @classmethod
+    def get_option(cls, session, option, default):
+        return Config.config[session][option] if cls.config.has_option(session, option) else default
+
 
 class ConfigProductGenerator:
 
