@@ -57,8 +57,9 @@ class MnistReader:
     def load_dwi_tensor_image(self, idx,
                               region=None,
                               vectorize=True,
-                              normalize=True,
+                              normalize=False,
                               mask=False,
+                              scale=1.,
                               max_img_channels=None,
                               ):
 
@@ -81,6 +82,9 @@ class MnistReader:
 
         if normalize is True:
             dwi_tensor = self.normalize_channels(dwi_tensor)
+
+        if scale is not None:
+            dwi_tensor = dwi_tensor * scale
 
         if max_img_channels is not None:
             dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]

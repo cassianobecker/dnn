@@ -104,7 +104,7 @@ class ConfigProductGenerator:
 
     @staticmethod
     def _break_values(values):
-        return [token.strip() for token in values.split(',')]
+        return [token.strip() for token in values.split('|')]
 
     @staticmethod
     def _list_of_configs_for_values(session, key, values):

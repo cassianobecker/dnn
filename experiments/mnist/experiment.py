@@ -61,15 +61,9 @@ class BatchTrain:
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        if Config.config.has_option('ALGORITHM', 'half_precision'):
-            half_precision = to_bool(Config.config['ALGORITHM']['half_precision'])
-        else:
-            half_precision = False
-
-        if Config.config.has_option('ALGORITHM', 'max_img_channels'):
-            max_img_channels = int(Config.config['ALGORITHM']['max_img_channels'])
-        else:
-            max_img_channels = None
+        half_precision = to_bool(Config.get_option('ALGORITHM', 'half_precision', 'False'))
+        max_img_channels = int(Config.get_option('ALGORITHM', 'max_img_channels', 1000))
+        cholesky_weights = to_bool(Config.get_option('ARCHITECTURE', 'cholesky_weights', 'False'))
 
         train_images, test_images = Images.create_list_from_config()
 
@@ -105,8 +99,8 @@ class BatchTrain:
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
-        self.model = model_class(img_dims, num_classes, half_precision=half_precision)
 
+        self.model = model_class(img_dims, num_classes, cholesky_weights=cholesky_weights)
         self.model.to(self.device)
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])

@@ -6,7 +6,7 @@ from nn.DtiConv3d import DwiConv3dUnitKernel
 from util.architecture import Dimensions
 
 
-class DNN2ConvDeep1(nn.Module):
+class DnnHcp(nn.Module):
 
     def __init__(self, img_dims, number_of_classes, cholesky_weights=False):
         super(DNN2ConvDeep1, self).__init__()

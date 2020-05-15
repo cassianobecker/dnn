@@ -26,6 +26,8 @@ class MnistDataset(torch.utils.data.Dataset):
         self.half_precision = half_precision
         self.max_img_channels = max_img_channels
 
+        self.scale = int(Config.get_option('TRANSFORMS', 'scale', 1))
+
         self.reader = MnistReader(regime)
 
         if Config.config.has_option('TRANSFORMS', 'region'):
@@ -56,7 +58,8 @@ class MnistDataset(torch.utils.data.Dataset):
             dti_tensor = self.reader.load_dwi_tensor_image(
                 idx,
                 region=region,
-                max_img_channels=max_img_channels
+                max_img_channels=max_img_channels,
+                scale=self.scale
             )
 
             target = self.reader.load_covariate(idx)
