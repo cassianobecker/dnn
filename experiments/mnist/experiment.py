@@ -78,7 +78,8 @@ class BatchTrain:
         self.data_loaders['train'] = MnistDataLoader(
             train_set,
             shuffle=False,
-            batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
+            batch_size=int(Config.config['ALGORITHM']['train_batch_size']),
+            pin_memory=True
         )
 
         test_set = MnistDataset(
@@ -92,7 +93,8 @@ class BatchTrain:
         self.data_loaders['test'] = MnistDataLoader(
             test_set,
             shuffle=False,
-            batch_size=int(Config.config['ALGORITHM']['test_batch_size'])
+            batch_size=int(Config.config['ALGORITHM']['test_batch_size']),
+            pin_memory=True
         )
 
         img_dims = train_set.tensor_size()
@@ -138,11 +140,11 @@ class BatchTrain:
 
             loss = F.nll_loss(outputs, targets)
             loss.backward()
-            # self.optimizer.step()
+            self.optimizer.step()
 
-            if (batch_idx + 1) % self.accumulation_steps == 0:
-                self.optimizer.step()
-                self.model.zero_grad()
+            # if (batch_idx + 1) % self.accumulation_steps == 0:
+            #     self.optimizer.step()
+            #     self.model.zero_grad()
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
