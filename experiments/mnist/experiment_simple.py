@@ -45,8 +45,8 @@ class BatchTrain:
 
             MetricsHandler.dispatch_event(locals(), 'before_epoch')
 
-            self.train_batch(epoch)
-            self.test_batch(epoch)
+            self.train_batches(epoch)
+            self.test_batches(epoch)
 
             MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
@@ -147,7 +147,7 @@ class BatchTrain:
         else:
             self.accumulation_steps = 1
 
-    def train_batch(self, epoch):
+    def train_batches(self, epoch):
 
         self.model.train()
 
@@ -196,7 +196,7 @@ class BatchTrain:
     #
     #         MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
-    def test_batch(self, epoch):
+    def test_batches(self, epoch):
 
         self.model.eval()
 

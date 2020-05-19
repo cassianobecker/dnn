@@ -11,6 +11,11 @@ from util.lang import to_bool
 from dataset.mnist.loader import MnistDataset, MnistDataLoader
 from dataset.mnist.images import Images
 from util.lang import class_for_name
+from torch.autograd import Variable
+from dipy.io.image import save_nifti
+import os
+import numpy as np
+from torch.optim import Adam
 
 
 class BatchTrain:
@@ -33,15 +38,9 @@ class BatchTrain:
 
         MetricsHandler.dispatch_event(locals(), 'after_setup')
 
-        if to_bool(Config.config['OUTPUTS']['load_model']) is True:
-            self.model = ModelHandler.load_model(epoch=1)
-
         for epoch in range(self.epochs):
 
             MetricsHandler.dispatch_event(locals(), 'before_epoch')
-
-            self.train_batch(epoch)
-            self.test_batch(epoch)
 
             MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
@@ -57,7 +56,7 @@ class BatchTrain:
 
         num_classes = 10
 
-        torch.manual_seed(1234)
+        # torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -78,7 +77,8 @@ class BatchTrain:
         self.data_loaders['train'] = MnistDataLoader(
             train_set,
             shuffle=False,
-            batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
+            batch_size=int(Config.config['ALGORITHM']['train_batch_size']),
+            pin_memory=True
         )
 
         test_set = MnistDataset(
@@ -92,7 +92,8 @@ class BatchTrain:
         self.data_loaders['test'] = MnistDataLoader(
             test_set,
             shuffle=False,
-            batch_size=int(Config.config['ALGORITHM']['test_batch_size'])
+            batch_size=int(Config.config['ALGORITHM']['test_batch_size']),
+            pin_memory=True
         )
 
         img_dims = train_set.tensor_size()
@@ -101,64 +102,71 @@ class BatchTrain:
         model_class = class_for_name(arch_class_name)
 
         self.model = model_class(img_dims, num_classes, cholesky_weights=cholesky_weights)
+
+        if to_bool(Config.config['OUTPUTS']['load_model']) is True:
+            model_parameters_url = Config.config['OUTPUTS']['model_parameters_url']
+            state_dict = ModelHandler.load_model(model_parameters_url)
+            self.model.load_state_dict(state_dict)
+
         self.model.to(self.device)
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
 
-        self.optimizer = optim.Adadelta(
-            self.model.parameters(),
-            lr=float(Config.config['ALGORITHM']['lr'])
-        )
+        target = 0
 
-        self.scheduler = StepLR(
-            self.optimizer,
-            step_size=1,
-            gamma=float(Config.config['ALGORITHM']['gamma'])
-        )
+        precision = 1.e-5
+        max_iter = 5e3
+        ep = 1.e-0
 
-        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
-            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
+        x0 = torch.randn(1, 6, 28, 28, 8, device=self.device)
+        x = Variable(x0, requires_grad=True)
+
+        save_interval = 500
+        print_interval = 100
+
+        diff = precision + 1
+        i = 0
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        saliency_path = os.path.join(Config.config['EXPERIMENT']['results_path'], 'saliency')
+
+        if not os.path.isdir(saliency_path):
+            os.makedirs(saliency_path)
+
+        optimizer = Adam([x], lr=0.01, betas=(0.9, 0.999))
+
+        reg_weight = 1.e-1
+
+        while diff > precision and i < max_iter:
+
+            optimizer.zero_grad()
+
+            output = - (self.model.scores(x)[0][target] + reg_weight * torch.norm(x))
+
+            output.backward()
+
+            optimizer.step()
+
+            # x = x + ep * x.grad
+            # x = x.clone().detach().requires_grad_(True)
+
+            if i == 0 or i % print_interval == 0:
+                print(f'iteration {i:5d} -  output: {-output:1.3f}')
+                # print(f'Target: {target}\t{i}/{max_iter} iterations updated')
+
+            if i == 0 or i % save_interval == 0:
+
+                saliency_map = np.squeeze(x.detach().numpy()).transpose((1, 2, 3, 0))
+                save_nifti(os.path.join(saliency_path, f'saliency_{i}.nii.gz'), saliency_map, np.eye(4))
+
+            i += 1
+
+        if i == max_iter:
+            print(f'Target: {target}\tReached max_iter')
         else:
-            self.accumulation_steps = 1
+            print(f'Target: {target}\tConverged in {i} iterations')
 
-    def train_batch(self, epoch):
 
-        self.model.train()
 
-        for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
-
-            MetricsHandler.dispatch_event(locals(), 'before_train_batch')
-
-            dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
-                                   targets.to(self.device).type(torch.long)
-
-            self.optimizer.zero_grad()
-
-            outputs = self.model(dti_tensors)
-
-            loss = F.nll_loss(outputs, targets)
-            loss.backward()
-            # self.optimizer.step()
-
-            if (batch_idx + 1) % self.accumulation_steps == 0:
-                self.optimizer.step()
-                self.model.zero_grad()
-
-            MetricsHandler.dispatch_event(locals(), 'after_train_batch')
-
-    def test_batch(self, epoch):
-
-        self.model.eval()
-
-        with torch.no_grad():
-
-            for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
-
-                MetricsHandler.dispatch_event(locals(), 'before_test_batch')
-
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
-                                       targets.to(self.device).type(torch.long)
-
-                outputs = self.model(dti_tensors)
-
-                MetricsHandler.dispatch_event(locals(), 'after_test_batch')
