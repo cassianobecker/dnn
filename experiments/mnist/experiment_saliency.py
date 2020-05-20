@@ -112,7 +112,7 @@ class BatchTrain:
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
 
-        target = 0
+
 
         precision = 1.e-5
         max_iter = 5e3
@@ -138,6 +138,7 @@ class BatchTrain:
         optimizer = Adam([x], lr=0.01, betas=(0.9, 0.999))
 
         reg_weight = 1.e-1
+        target = 1
 
         while diff > precision and i < max_iter:
 
@@ -167,6 +168,3 @@ class BatchTrain:
             print(f'Target: {target}\tReached max_iter')
         else:
             print(f'Target: {target}\tConverged in {i} iterations')
-
-
-

@@ -7,7 +7,7 @@ class ModelHandler:
 
     @classmethod
     def load_model(cls, model_parameters_url, epoch=None):
-        return torch.load(os.path.expanduser(model_parameters_url))
+        return torch.load(os.path.expanduser(model_parameters_url), map_location=torch.device('cpu'))
 
     @classmethod
     def save_model(cls, model, epoch):

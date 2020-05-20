@@ -2,7 +2,7 @@ import configparser
 from itertools import product
 import os
 from datetime import datetime
-from util.string import range_to_comma_separated_string
+from util.string import range_to_separated_string
 
 
 class Config:
@@ -41,6 +41,8 @@ class ConfigProductGenerator:
             raise Exception(f'ConfigParser file not found on {config_url}')
 
         self.config = config
+        self.token = '|'
+
         self._pre_process_config()
 
         self.config_products = []
@@ -57,13 +59,13 @@ class ConfigProductGenerator:
 
         if session == 'SUBJECTS' and key == 'number_of_batches':
             number_of_batches = int(self.config['SUBJECTS']['number_of_batches'])
-            self.config['SUBJECTS']['subject_batch_index'] = range_to_comma_separated_string(number_of_batches)
+            self.config['SUBJECTS']['subject_batch_index'] = range_to_separated_string(number_of_batches, self.token)
 
     def _add_image_batches(self, session, key):
 
         if session == 'IMAGES' and key == 'number_of_batches':
             number_of_batches = int(self.config['IMAGES']['number_of_batches'])
-            self.config['IMAGES']['image_batch_index'] = range_to_comma_separated_string(number_of_batches)
+            self.config['IMAGES']['image_batch_index'] = range_to_separated_string(number_of_batches, self.token)
 
     def _pre_process_config(self):
 
@@ -102,9 +104,8 @@ class ConfigProductGenerator:
 
         return base_config, all_config_lists
 
-    @staticmethod
-    def _break_values(values):
-        return [token.strip() for token in values.split('|')]
+    def _break_values(self, values):
+        return [token.strip() for token in values.split(self.token)]
 
     @staticmethod
     def _list_of_configs_for_values(session, key, values):
