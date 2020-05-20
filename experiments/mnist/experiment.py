@@ -8,10 +8,10 @@ from fwk.metrics import MetricsHandler
 from fwk.model import ModelHandler
 from util.lang import to_bool
 
-from dataset.hcp.loader import HcpDataset, HcpDataLoader
-from dataset.hcp.subjects import Subjects
+from dataset.mnist.loader import MnistDataset, MnistDataLoader
+from dataset.mnist.images import Images
 from util.lang import class_for_name
-from util.encode import one_hot_to_int
+
 
 class BatchTrain:
 
@@ -55,6 +55,8 @@ class BatchTrain:
 
     def setup(self):
 
+        num_classes = 10
+
         torch.manual_seed(1234)
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -63,36 +65,37 @@ class BatchTrain:
         max_img_channels = int(Config.get_option('ALGORITHM', 'max_img_channels', 1000))
         cholesky_weights = to_bool(Config.get_option('ARCHITECTURE', 'cholesky_weights', 'False'))
 
-        train_subjects, test_subjects = Subjects.create_list_from_config()
+        train_images, test_images = Images.create_list_from_config()
 
-        train_set = HcpDataset(
+        train_set = MnistDataset(
             self.device,
-            subjects=train_subjects,
+            images=train_images,
+            regime='train',
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
 
-        self.data_loaders['train'] = HcpDataLoader(
+        self.data_loaders['train'] = MnistDataLoader(
             train_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['train_batch_size'])
         )
 
-        test_set = HcpDataset(
+        test_set = MnistDataset(
             self.device,
-            subjects=test_subjects,
+            images=test_images,
+            regime='test',
             half_precision=half_precision,
             max_img_channels=max_img_channels
         )
 
-        self.data_loaders['test'] = HcpDataLoader(
+        self.data_loaders['test'] = MnistDataLoader(
             test_set,
             shuffle=False,
             batch_size=int(Config.config['ALGORITHM']['test_batch_size'])
         )
 
         img_dims = train_set.tensor_size()
-        num_classes = train_set.number_of_classes()
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
@@ -133,7 +136,7 @@ class BatchTrain:
 
             outputs = self.model(dti_tensors)
 
-            loss = F.nll_loss(outputs, one_hot_to_int(targets))
+            loss = F.nll_loss(outputs, targets)
             loss.backward()
             # self.optimizer.step()
 
@@ -148,10 +151,12 @@ class BatchTrain:
         self.model.eval()
 
         with torch.no_grad():
+
             for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
+
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
+                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32),\
                                        targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)

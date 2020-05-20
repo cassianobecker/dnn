@@ -6,10 +6,10 @@ from nn.DtiConv3d import DwiConv3dUnitKernel
 from util.architecture import Dimensions
 
 
-class DnnHcp(nn.Module):
+class DnnHcpUnitKernel(nn.Module):
 
     def __init__(self, img_dims, number_of_classes, cholesky_weights=False):
-        super(DnnHcp, self).__init__()
+        super(DnnHcpUnitKernel, self).__init__()
 
         img_channels = img_dims[0]
         kernel_dims = [4, 4, 4]
@@ -44,7 +44,7 @@ class DnnHcp(nn.Module):
         self.fc1 = nn.Linear(int(linear_size1), linear_size2)
         self.fc2 = nn.Linear(linear_size2, number_of_classes)
 
-    def forward(self, x):
+    def scores(self, x):
 
         x = self.conv1(x)
         x = func.relu(x)
@@ -67,6 +67,11 @@ class DnnHcp(nn.Module):
         x = self.dropout2(x)
         x = self.fc2(x)
 
-        output = func.log_softmax(x, dim=1)
+        return x
+
+    def forward(self, x):
+
+        y = self.scores(x)
+        output = func.log_softmax(y, dim=1)
 
         return output

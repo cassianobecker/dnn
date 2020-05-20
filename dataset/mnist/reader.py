@@ -6,11 +6,14 @@ from fwk.config import Config
 from util.path import absolute_path
 import nibabel as nb
 from util.arrays import slice_from_list_of_pairs
+from dipy.io.image import load_nifti
 
 
-class HcpReader:
+class MnistReader:
 
-    def __init__(self):
+    def __init__(self, regime):
+
+        self.regime = regime
 
         self.processing_folder = os.path.expanduser(Config.config['DATABASE']['local_processing_directory'])
         if not os.path.isdir(self.processing_folder):
@@ -24,8 +27,7 @@ class HcpReader:
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.field = Config.config['COVARIATES']['field']
-        self.covariates = Covariates()
+        self.model = Config.config['IMAGES']['model']
 
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
@@ -33,22 +35,26 @@ class HcpReader:
         else:
             self.mask_url = None
 
-    def load_subject_list(self, list_url, max_subjects=None):
-        self.logger.info('loading subjects from ' + list_url)
-        with open(absolute_path(list_url), 'r') as f:
-            subjects = [s.strip() for s in f.readlines()]
-            subjects = subjects[:int(max_subjects)] if max_subjects is not None else subjects
+    # def load_image_list(self, list_url, max_subjects=None):
+    #     self.logger.info('loading subjects from ' + list_url)
+    #     with open(absolute_path(list_url), 'r') as f:
+    #         subjects = [s.strip() for s in f.readlines()]
+    #         subjects = subjects[:int(max_subjects)] if max_subjects is not None else subjects
+    #
+    #     self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
+    #     return subjects
 
-        self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
-        return subjects
+    def _processed_tensor_folder(self, idx):
+        return os.path.join(self.processing_folder, self.regime, idx)
 
-    def _processed_tensor_folder(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
+    def _processed_tensor_url(self, idx):
+        tensor_name = {'odf': 'odf.nii.gz', 'dti': 'dti.nii.gz'}
+        return os.path.join(self.processing_folder, self.regime, idx, tensor_name[self.model])
 
-    def _processed_tensor_url(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'tensor_' + subject + '.npz')
+    def _label_url(self, idx):
+        return os.path.join(self.processing_folder, self.regime, idx, 'label.nii.gz')
 
-    def load_dwi_tensor_image(self, subject,
+    def load_dwi_tensor_image(self, idx,
                               region=None,
                               vectorize=True,
                               normalize=False,
@@ -58,9 +64,11 @@ class HcpReader:
                               ):
 
         try:
-            dwi_tensor = np.load(self._processed_tensor_url(subject))['dwi_tensor']
+            dwi_tensor = load_nifti(self._processed_tensor_url(idx))[0]
+            dwi_tensor = np.transpose(dwi_tensor, (3, 0, 1, 2))
+
         except FileNotFoundError:
-            raise SkipSubjectException(f'File for subject {subject} not found')
+            raise SkipImageException(f'File for subject {idx} not found')
 
         if region is not None:
             slices = slice_from_list_of_pairs(region, null_offset=2)
@@ -83,8 +91,15 @@ class HcpReader:
 
         return dwi_tensor
 
-    def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject)
+    def load_covariate(self, idx):
+
+        label_url = self._label_url(idx)
+        label = load_nifti(label_url)[0]
+
+        if label.shape[0] > 1:
+            label_idx = np.argmax(label)
+
+        return label_idx
 
     def apply_mask(self, tensor):
 
@@ -96,28 +111,7 @@ class HcpReader:
 
     @staticmethod
     def vectorize_channels(tensor):
-
-        # use FSL convention (see https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FDT/UserGuide)
-        # 0,0 Dxx
-        # 0,1 Dxy
-        # 0,2 Dxz
-        # 1,1 Dyy
-        # 1,2 Dyz
-        # 2,2 Dzz
-
-        if not (tensor.shape[0], tensor.shape[1]) == (3, 3):
-            raise RuntimeError('Vectorization only applicable for (3, 3) DTI matrices.')
-
-        new_tensor = np.stack((
-            tensor[0, 0, :, :, :],
-            tensor[0, 1, :, :, :],
-            tensor[0, 2, :, :, :],
-            tensor[1, 1, :, :, :],
-            tensor[1, 2, :, :, :],
-            tensor[2, 2, :, :, :],
-        ), axis=0)
-
-        return new_tensor
+        return tensor.reshape((tensor.shape[0]*tensor.shape[1], *tensor.shape[2:]))
 
     @staticmethod
     def normalize_channels(tensor):
@@ -135,6 +129,6 @@ class HcpReader:
         return np.reshape(region_str_list, (3, 2)).tolist()
 
 
-class SkipSubjectException(Exception):
+class SkipImageException(Exception):
     def __init(self, msg):
-        super(SkipSubjectException, self).__init__(msg)
+        super(SkipImageException, self).__init__(msg)

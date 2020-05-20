@@ -8,7 +8,7 @@ def tubify(img, d):
         mu = np.exp(-(1/d)*(k-(d/2)) ** 2)
         img3d.append(img * mu)
 
-    return np.array(img3d)
+    return np.array(img3d).transpose((1, 2, 0))
 
 
 def get_img(img, idx):
