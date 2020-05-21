@@ -132,10 +132,8 @@ class BatchTrain:
             dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
                                    targets.to(self.device).type(torch.long)
 
-            self.optimizer.zero_grad()
-
+            # self.optimizer.zero_grad()
             outputs = self.model(dti_tensors)
-
             loss = F.nll_loss(outputs, targets)
             loss.backward()
             # self.optimizer.step()
