@@ -63,8 +63,6 @@ class HcpDwiProcessor:
 
         moving_url = self._get_moving_fa(subject)
 
-        fslchfiletype
-
         moving, moving_affine = load_nifti(moving_url)
 
         # find linear registration transformation
@@ -122,8 +120,7 @@ class HcpDwiProcessor:
         self._perform_dti_fit(dti_params, save_tensor=False)
 
         moving_fa_url = self._url_moving_dwi(subject, 'dti_FA')
-        cbica_fsl_executable = '/cbica/software/external/fsl/centos7/5.0.11/bin/fslchfiletype'
-        fslconvert_command_str = '{1} NIFTI_GZ {0}'.format(moving_fa_url, cbica_fsl_executable)
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_fa_url}'
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
         converted_moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
@@ -158,8 +155,7 @@ class HcpDwiProcessor:
         self._perform_dti_fit(dti_params, save_tensor=True)
 
         registered_tensor_url = self._url_moving_dwi(subject, 'dti_tensor')
-        cbica_fsl_executable = '/cbica/software/external/fsl/centos7/5.0.11/bin/fslchfiletype'
-        fslconvert_command_str = '{1} NIFTI_GZ {0}'.format(registered_tensor_url, cbica_fsl_executable)
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {registered_tensor_url}'
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
     def fit_odf(self, subject):
