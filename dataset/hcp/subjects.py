@@ -42,6 +42,9 @@ class Subjects:
     @staticmethod
     def list_from(path):
         abs_path = os.path.expanduser(os.path.join(path, 'HCP_1200_tensor'))
+        if not os.path.isdir(abs_path):
+            abs_path = path
+
         files = sorted(os.listdir(abs_path))
         subject_pattern = '[0-9]{6}'
         subjects = [file for file in files if bool(re.match(subject_pattern, file))]

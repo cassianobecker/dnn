@@ -4,6 +4,7 @@ import sklearn.metrics
 from fwk.metrics import Metric
 from util.encode import one_hot_to_int
 
+
 class ClassificationAccuracy(Metric):
 
     def __init__(self) -> None:
@@ -30,7 +31,7 @@ class ClassificationAccuracy(Metric):
         self.stats[regime].total += predicted.shape[0]
 
         self.stats[regime].predicted.extend(predicted.tolist())
-        self.stats[regime].targets.extend(targets.tolist())
+        self.stats[regime].targets.extend(one_hot_to_int(targets).tolist())
 
     def on_before_epoch(self, local_variables):
         self.stats = dict()

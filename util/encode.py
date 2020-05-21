@@ -16,4 +16,4 @@ def one_hot_to_int(x):
     -------
     torch.tensor; (N samples)
     """
-    return x.view(-1, 1).argmax(dim=0)
+    return x.argmax(dim=1)

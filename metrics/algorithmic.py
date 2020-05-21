@@ -1,3 +1,4 @@
+import math
 from fwk.metrics import Metric
 from fwk.config import Config
 
@@ -33,7 +34,7 @@ class TrainBatchCounter(Metric):
         self.number_of_subjects = len(local_variables['self'].data_loaders[self.regime].dataset.subjects)
         self.subjects_per_batch = int(Config.config['ALGORITHM'][f'{self.regime}_batch_size'])
         self.batch_idx = local_variables['batch_idx']
-        self.number_of_batches = int(self.number_of_subjects / self.subjects_per_batch)
+        self.number_of_batches = math.ceil(self.number_of_subjects / self.subjects_per_batch)
         self.print_metric()
 
     def text_record(self):
@@ -55,7 +56,7 @@ class TestBatchCounter(Metric):
         self.number_of_subjects = len(local_variables['self'].data_loaders[self.regime].dataset.subjects)
         self.subjects_per_batch = int(Config.config['ALGORITHM'][f'{self.regime}_batch_size'])
         self.batch_idx = local_variables['batch_idx']
-        self.number_of_batches = int(self.number_of_subjects / self.subjects_per_batch)
+        self.number_of_batches = math.ceil(self.number_of_subjects / self.subjects_per_batch)
         self.print_metric()
 
     def text_record(self):
