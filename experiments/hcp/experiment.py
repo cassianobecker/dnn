@@ -13,6 +13,7 @@ from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
 from util.encode import one_hot_to_int
 
+
 class BatchTrain:
 
     def __init__(self):
@@ -126,13 +127,11 @@ class BatchTrain:
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
-            dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
-                                   targets.to(self.device).type(torch.long)
+            dti_tensors, targets = dti_tensors.to(self.device).type(
+                torch.float32), targets.to(self.device).type(torch.long)
 
-            self.optimizer.zero_grad()
-
+            # self.optimizer.zero_grad()
             outputs = self.model(dti_tensors)
-
             loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss.backward()
             # self.optimizer.step()
@@ -151,8 +150,8 @@ class BatchTrain:
             for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
-                                       targets.to(self.device).type(torch.long)
+                dti_tensors, targets = dti_tensors.to(self.device).type(
+                    torch.float32), targets.to(self.device).type(torch.long)
 
                 outputs = self.model(dti_tensors)
 
