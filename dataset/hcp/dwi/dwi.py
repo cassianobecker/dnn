@@ -122,7 +122,7 @@ class HcpDwiProcessor:
         self._perform_dti_fit(dti_params, save_tensor=False)
 
         moving_fa_url = self._url_moving_dwi(subject, 'dti_FA')
-        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_fa_url}'
+        fslconvert_command_str = 'fslchfiletype NIFTI_GZ {0}'.format(moving_fa_url)
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
         converted_moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
@@ -157,7 +157,7 @@ class HcpDwiProcessor:
         self._perform_dti_fit(dti_params, save_tensor=True)
 
         registered_tensor_url = self._url_moving_dwi(subject, 'dti_tensor')
-        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {registered_tensor_url}'
+        fslconvert_command_str = 'fslchfiletype NIFTI_GZ {0}'.format(registered_tensor_url)
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
     def fit_odf(self, subject):
