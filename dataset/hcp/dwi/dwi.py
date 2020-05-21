@@ -154,7 +154,7 @@ class HcpDwiProcessor:
 
         self._perform_dti_fit(dti_params, save_tensor=True)
 
-        registered_tensor_url = self._url_moving_dwi(subject, 'dti_tensor.*')
+        registered_tensor_url = self._url_fitted_dwi(subject, 'dti_tensor.*')
         fslconvert_command_str = f'fslchfiletype NIFTI_GZ {registered_tensor_url}'
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
