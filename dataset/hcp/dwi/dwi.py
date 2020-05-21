@@ -39,6 +39,18 @@ class HcpDwiProcessor:
         # instead of 'FMRIB58_FA-mask_125mm.nii.gz'
         self.mask_file = Config.get_option('TEMPLATE', 'mask', 'FMRIB58_FA-mask_125mm_edit.nii.gz')
 
+    def dti_fit_moving(self, subject):
+
+        dti_params = {
+            'data': self._url_mirror_dwi(subject, 'data.nii.gz'),
+            'mask': self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+            'bvals': self._url_mirror_dwi(subject, 'bvals'),
+            'bvecs': self._url_mirror_dwi(subject, 'bvecs'),
+            'output': self._url_moving_dwi(subject, 'dti')
+        }
+
+        self._perform_dti_fit(dti_params, save_tensor=True)
+
     def process_subject(self, subject, delete_folders=False):
 
         self.logger.info(f'processing subject {subject}')

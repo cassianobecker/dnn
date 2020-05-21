@@ -123,15 +123,15 @@ class BatchTrain:
 
         self.model.train()
 
-        for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
+        for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
-            dti_tensors, targets = dti_tensors.to(self.device).type(
+            dwi_tensors, targets = dwi_tensors.to(self.device).type(
                 torch.float32), targets.to(self.device).type(torch.long)
 
             self.optimizer.zero_grad()
-            outputs = self.model(dti_tensors)
+            outputs = self.model(dwi_tensors)
             loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss.backward()
             self.optimizer.step()
@@ -147,12 +147,12 @@ class BatchTrain:
         self.model.eval()
 
         with torch.no_grad():
-            for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
+            for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(
+                dwi_tensors, targets = dwi_tensors.to(self.device).type(
                     torch.float32), targets.to(self.device).type(torch.long)
 
-                outputs = self.model(dti_tensors)
+                outputs = self.model(dwi_tensors)
 
                 MetricsHandler.dispatch_event(locals(), 'after_test_batch')
