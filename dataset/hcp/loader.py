@@ -6,6 +6,7 @@ from util.logging import get_logger, set_logger
 from util.lang import to_bool
 from fwk.config import Config
 import numpy.random as npr
+import numpy as np
 
 
 class HcpDataset(torch.utils.data.Dataset):
@@ -50,8 +51,6 @@ class HcpDataset(torch.utils.data.Dataset):
             region=self.region,
             max_img_channels=self.max_img_channels)
 
-
-
     def data_for_subject(self, subject, region=None, max_img_channels=None):
 
         dti_tensor, target = None, None
@@ -79,7 +78,7 @@ class HcpDataset(torch.utils.data.Dataset):
     def _randomize_dwi_tensor(self, dwi_tensor, target):
         if target.argmax() == 1:
             dwi_tensor = dwi_tensor * (2 * npr.rand(*dwi_tensor.shape) - 1)
-        return dwi_tensor
+        return dwi_tensor.astype(np.double)
 
     def tensor_size(self):
         tensor_shape = self.__getitem__(0)[0].shape
