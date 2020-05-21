@@ -210,7 +210,9 @@ class HcpDtiProcessor:
                 os.makedirs(converted_dir)
 
             if os.path.exists(os.path.join(processed_fsl_dir, 'fsl_tensor.hdr')):
-                fslconvert_command_str = 'fslchfiletype NIFTI_GZ {0}/fsl_tensor.*'.format(processed_fsl_dir)
+
+                cbica_fsl_executable = '/cbica/software/external/fsl/centos7/5.0.11/bin/fslchfiletype'
+                fslconvert_command_str = '{1} NIFTI_GZ {0}/fsl_tensor.*'.format(processed_fsl_dir, cbica_fsl_executable)
                 subprocess.run(fslconvert_command_str, shell=True, check=True)
 
             ants_command_str = \
