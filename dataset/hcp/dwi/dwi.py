@@ -62,6 +62,9 @@ class HcpDwiProcessor:
         static, static_affine = load_nifti(static_url)
 
         moving_url = self._get_moving_fa(subject)
+
+        fslchfiletype
+
         moving, moving_affine = load_nifti(moving_url)
 
         # find linear registration transformation
@@ -118,9 +121,13 @@ class HcpDwiProcessor:
 
         self._perform_dti_fit(dti_params, save_tensor=False)
 
-        moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
+        moving_fa_url = self._url_moving_dwi(subject, 'dti_FA')
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_fa_url}'
+        subprocess.run(fslconvert_command_str, shell=True, check=True)
 
-        return moving_fa_url
+        converted_moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
+
+        return converted_moving_fa_url
 
     @staticmethod
     def _perform_dti_fit(dti_params, save_tensor=False):
@@ -148,6 +155,10 @@ class HcpDwiProcessor:
         }
 
         self._perform_dti_fit(dti_params, save_tensor=True)
+
+        registered_tensor_url = self._url_moving_dwi(subject, 'dti_tensor')
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {registered_tensor_url}'
+        subprocess.run(fslconvert_command_str, shell=True, check=True)
 
     def fit_odf(self, subject):
 
