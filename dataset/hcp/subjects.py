@@ -48,7 +48,16 @@ class Subjects:
         files = sorted(os.listdir(abs_path))
         subject_pattern = '[0-9]{6}'
         subjects = [file for file in files if bool(re.match(subject_pattern, file))]
-        return subjects
+
+        model = Config.get_option('DATABASE', 'model', None)
+        file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz'}
+
+        def url_for_subject(subject):
+            return os.path.join(abs_path, subject, 'fitted', file_names[model])
+
+        fitted_subjects = [subject for subject in subjects if os.path.isfile(url_for_subject(subject))]
+
+        return fitted_subjects
 
     @staticmethod
     def _partition(subjects, idxs):

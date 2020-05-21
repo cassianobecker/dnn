@@ -77,6 +77,7 @@ class HcpDataset(torch.utils.data.Dataset):
         num_classes = self.__getitem__(0)[1].size
         return num_classes
 
+
 class HcpDataLoader(torch.utils.data.DataLoader):
 
     def __init__(self, *args, **kwargs):
