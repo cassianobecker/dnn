@@ -8,6 +8,7 @@ dependencies:
   - numpy
   - scipy
   - pandas
+  - psutil
   - pytorch
   - torchvision
   - cudatoolkit

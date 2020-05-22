@@ -8,7 +8,7 @@ dependencies:
   - numpy
   - scipy
   - pandas
-  - psutil # saving plotly
+  - psutil
   - pytorch=1.1.0
   - torchvision=0.3.0
   - cudatoolkit=9.0
