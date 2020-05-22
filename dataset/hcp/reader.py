@@ -1,5 +1,7 @@
 import os
 import numpy as np
+import numpy.random as npr
+
 from dataset.hcp.covariates import Covariates
 from util.logging import get_logger, set_logger
 from fwk.config import Config
@@ -7,6 +9,7 @@ from util.path import absolute_path
 import nibabel as nb
 from util.arrays import slice_from_list_of_pairs
 from dipy.io.image import load_nifti
+from dataset.hcp.dwi.transform import rotate_tensor
 
 
 class HcpReader:
@@ -98,6 +101,7 @@ class HcpReader:
                               mask=False,
                               scale=1.,
                               max_img_channels=None,
+                              perturb_tensor=True
                               ):
 
         try:
@@ -125,7 +129,23 @@ class HcpReader:
         if max_img_channels is not None:
             dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
 
+        if perturb_tensor is True:
+            dwi_tensor = self.transform_dwi_tensor(dwi_tensor)
+
         return dwi_tensor
+
+    @staticmethod
+    def transform_dwi_tensor(dwi_tensor):
+
+        max_ang = np.pi / 50
+        max_shift = 5
+
+        angles = max_ang * (2 * npr.random(3) - 1)
+        shift = max_shift * (2 * npr.random(3) - 1)
+
+        transformed_dwi_tensor = rotate_tensor(dwi_tensor, angles, shift=shift)
+
+        return transformed_dwi_tensor
 
     def load_covariate(self, subject):
         return self.covariates.value(self.field, subject)
