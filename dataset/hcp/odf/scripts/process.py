@@ -4,6 +4,10 @@ from dataset.hcp.odf.odf import HcpOdfProcessor
 from fwk.config import Config
 from util.path import append_path
 
+import os
+import numpy as np
+from dipy.io.image import  save_nifti
+
 
 class OdfProcessorScript:
 
@@ -24,10 +28,27 @@ class OdfProcessorScript:
         for subject in processor.database.subject_batch(subject_batch_index, number_of_batches)[:max_sub]:
             print('processing subject {}'.format(subject))
             try:
-                processor.process_subject(subject, delete_folders=False)
-
+                # processor.process_subject(subject, delete_folders=False)
+                transfer_odf(subject)
             except Exception as e:
                 print(e)
+
+
+def transfer_odf(subject):
+
+    # ~/.dnn/datasets/hcp/processing_odf/HCP_1200_tensor/100206/tensor_100206.npz
+    base_path = '~/.dnn/datasets/hcp/processing_odf/HCP_1200_tensor'
+    base_url = os.path.expanduser(os.path.join(base_path, subject, f'tensor_{subject}.npz'))
+    target_path = '~/.dnn/datasets/hcp/processing_dwi_rigid'
+    target_url = os.path.expanduser(os.path.join(target_path, subject, 'moving', 'odf.nii.gz'))
+
+    if os.path.isfile(base_url):
+        data = np.load(base_url)['dwi_tensor']
+
+        save_nifti(target_url, data, np.eye(4))
+
+        if os.path.isfile(target_url):
+            os.remove(base_url)
 
 
 def test_batch_subjects():
