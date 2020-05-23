@@ -97,9 +97,9 @@ class DnnHcpUnitKernel(nn.Module):
         self.dropout2 = nn.Dropout2d(0.5)
         self.max1 = nn.MaxPool3d(pool_size)
 
-        # linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
+        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
 
-        linear_size1 = 28224
+        # linear_size1 = 28224
         linear_size2 = 128
 
         self.fc1 = nn.Linear(int(linear_size1), linear_size2)
@@ -153,9 +153,9 @@ class CnnHcp(nn.Module):
         self.dropout2 = nn.Dropout2d(0.5)
         self.max1 = nn.MaxPool3d(pool_size)
 
-        # linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
+        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
 
-        linear_size1 = 28224
+        #linear_size1 = 28224
         linear_size2 = 128
 
         self.fc1 = nn.Linear(int(linear_size1), linear_size2)

@@ -3,11 +3,14 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 
-def rotate_tensor(x, angles, shift=None):
+def rotate_tensor(x, angles, shift=None, inside=True):
+
     x = x.transpose((1, 2, 3, 0))
     rot = R.from_euler('zyx', angles).as_dcm()
     x = rotate_dti_outside(x, rot, shift=shift)
-    x = rotate_dti_inside(x, rot)
+
+    if inside is True:
+        x = rotate_dti_inside(x, rot)
 
     return x.transpose((3, 0, 1, 2))
 
@@ -20,7 +23,7 @@ def rotate_dti_outside(x, rot, shift=None):
 
     affine_transform = AffineMap(affine_rot, domain_grid_shape=x.shape[:-1])
 
-    return np.array([affine_transform.transform(x[..., k]) for k in range(6)]).transpose((1, 2, 3, 0))
+    return np.array([affine_transform.transform(x[..., k]) for k in range(x.shape[-1])]).transpose((1, 2, 3, 0))
 
 
 def to_mat(x):

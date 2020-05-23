@@ -135,8 +135,7 @@ class HcpReader:
 
         return dwi_tensor
 
-    @staticmethod
-    def transform_dwi_tensor(dwi_tensor):
+    def transform_dwi_tensor(self, dwi_tensor):
 
         max_ang = np.pi / 80
         max_shift = 3
@@ -144,7 +143,9 @@ class HcpReader:
         angles = max_ang * (2 * npr.random(3) - 1)
         shift = max_shift * (2 * npr.random(3) - 1)
 
-        transformed_dwi_tensor = rotate_tensor(dwi_tensor, angles, shift=shift)
+        inside = True if self.model == 'dti' else False
+
+        transformed_dwi_tensor = rotate_tensor(dwi_tensor, angles, shift=shift, inside=inside)
 
         return transformed_dwi_tensor
 
