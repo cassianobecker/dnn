@@ -64,13 +64,16 @@ class BatchTrain:
         max_img_channels = int(Config.get_option('ALGORITHM', 'max_img_channels', 1000))
         cholesky_weights = to_bool(Config.get_option('ARCHITECTURE', 'cholesky_weights', 'False'))
 
+        perturb = to_bool(Config.get_option('DATABASE', 'perturb', 'False'))
+
         train_subjects, test_subjects = Subjects.create_list_from_config()
 
         train_set = HcpDataset(
             self.device,
             subjects=train_subjects,
             half_precision=half_precision,
-            max_img_channels=max_img_channels
+            max_img_channels=max_img_channels,
+            perturb=perturb
         )
 
         self.data_loaders['train'] = HcpDataLoader(
@@ -84,6 +87,7 @@ class BatchTrain:
             subjects=test_subjects,
             half_precision=half_precision,
             max_img_channels=max_img_channels,
+            perturb=False
         )
 
         self.data_loaders['test'] = HcpDataLoader(
@@ -130,15 +134,15 @@ class BatchTrain:
             dwi_tensors, targets = dwi_tensors.to(self.device).type(
                 torch.float32), targets.to(self.device).type(torch.long)
 
-            self.optimizer.zero_grad()
+            # self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
             loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss.backward()
-            self.optimizer.step()
+            # self.optimizer.step()
 
-            # if (batch_idx + 1) % self.accumulation_steps == 0:
-            #     self.optimizer.step()
-            #     self.model.zero_grad()
+            if (batch_idx + 1) % self.accumulation_steps == 0:
+                self.optimizer.step()
+                self.model.zero_grad()
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 

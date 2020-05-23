@@ -14,7 +14,7 @@ class HcpDataset(torch.utils.data.Dataset):
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, subjects, half_precision=False, max_img_channels=None):
+    def __init__(self, device, subjects, half_precision=False, max_img_channels=None, perturb=False):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
@@ -29,7 +29,7 @@ class HcpDataset(torch.utils.data.Dataset):
         self.half_precision = half_precision
         self.max_img_channels = max_img_channels
 
-        self.perturb = to_bool(Config.get_option('DATABASE', 'perturb', 'False'))
+        self.perturb = perturb
 
         self.reader = HcpReader()
 

@@ -138,8 +138,8 @@ class HcpReader:
     @staticmethod
     def transform_dwi_tensor(dwi_tensor):
 
-        max_ang = np.pi / 50
-        max_shift = 5
+        max_ang = np.pi / 80
+        max_shift = 3
 
         angles = max_ang * (2 * npr.random(3) - 1)
         shift = max_shift * (2 * npr.random(3) - 1)
