@@ -32,6 +32,7 @@ class HcpReader:
         self.covariates = Covariates()
 
         self.model = Config.get_option('DATABASE', 'model', None)
+        self.registration = Config.get_option('DATABASE', 'registration', None)
 
         self.file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz'}
 
@@ -92,7 +93,7 @@ class HcpReader:
     #     return dwi_tensor
 
     def _processed_tensor_url(self, subject):
-        return os.path.join(self.processing_folder, subject, 'fitted', self.file_names[self.model])
+        return os.path.join(self.processing_folder, subject, self.registration, self.file_names[self.model])
 
     def load_dwi_tensor_image(self, subject,
                               region=None,
@@ -101,7 +102,7 @@ class HcpReader:
                               mask=False,
                               scale=1.,
                               max_img_channels=None,
-                              perturb_tensor=True
+                              perturb=False
                               ):
 
         try:
@@ -129,7 +130,7 @@ class HcpReader:
         if max_img_channels is not None:
             dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
 
-        if perturb_tensor is True:
+        if perturb is True:
             dwi_tensor = self.transform_dwi_tensor(dwi_tensor)
 
         return dwi_tensor

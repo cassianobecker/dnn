@@ -53,7 +53,8 @@ class Subjects:
         file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz'}
 
         def url_for_subject(subject):
-            return os.path.join(abs_path, subject, 'fitted', file_names[model])
+            registration = Config.get_option('DATABASE', 'registration', None)
+            return os.path.join(abs_path, subject, registration, file_names[model])
 
         fitted_subjects = [subject for subject in subjects if os.path.isfile(url_for_subject(subject))]
 

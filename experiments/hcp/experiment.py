@@ -83,7 +83,7 @@ class BatchTrain:
             self.device,
             subjects=test_subjects,
             half_precision=half_precision,
-            max_img_channels=max_img_channels
+            max_img_channels=max_img_channels,
         )
 
         self.data_loaders['test'] = HcpDataLoader(

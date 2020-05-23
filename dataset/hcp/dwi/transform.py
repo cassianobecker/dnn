@@ -1,19 +1,15 @@
-import dipy
-from dipy.io.image import load_nifti, save_nifti
-import os
 from dipy.align.imaffine import AffineMap
 import numpy as np
-import numpy.random as npr
 from scipy.spatial.transform import Rotation as R
 
 
 def rotate_tensor(x, angles, shift=None):
-
+    x = x.transpose((1, 2, 3, 0))
     rot = R.from_euler('zyx', angles).as_dcm()
     x = rotate_dti_outside(x, rot, shift=shift)
     x = rotate_dti_inside(x, rot)
 
-    return x
+    return x.transpose((3, 0, 1, 2))
 
 
 def rotate_dti_outside(x, rot, shift=None):

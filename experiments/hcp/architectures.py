@@ -85,7 +85,7 @@ class DnnHcpUnitKernel(nn.Module):
         kernel_dims2 = [k, k, k]
         strides1 = [s, s, s]
         strides2 = [s, s, s]
-        c_out1 = 32
+        c_out1 = 128
         c_out2 = 64
         pool_size = 2
 
@@ -141,7 +141,7 @@ class CnnHcp(nn.Module):
         kernel_dims2 = [k, k, k]
         strides1 = [s, s, s]
         strides2 = [s, s, s]
-        c_out1 = 32
+        c_out1 = 128
         c_out2 = 64
         pool_size = 2
 

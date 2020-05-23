@@ -29,6 +29,8 @@ class HcpDataset(torch.utils.data.Dataset):
         self.half_precision = half_precision
         self.max_img_channels = max_img_channels
 
+        self.perturb = to_bool(Config.get_option('DATABASE', 'perturb', 'False'))
+
         self.reader = HcpReader()
 
         if Config.config.has_option('TRANSFORMS', 'region'):
@@ -49,9 +51,11 @@ class HcpDataset(torch.utils.data.Dataset):
         return self.data_for_subject(
             subject,
             region=self.region,
-            max_img_channels=self.max_img_channels)
+            max_img_channels=self.max_img_channels,
+            perturb=self.perturb
+        )
 
-    def data_for_subject(self, subject, region=None, max_img_channels=None):
+    def data_for_subject(self, subject, region=None, max_img_channels=None, perturb=False):
 
         dti_tensor, target = None, None
 
@@ -62,7 +66,8 @@ class HcpDataset(torch.utils.data.Dataset):
                 subject,
                 region=region,
                 max_img_channels=max_img_channels,
-                scale=self.scale
+                scale=self.scale,
+                perturb=perturb
             )
 
             target = self.reader.load_covariate(subject)
