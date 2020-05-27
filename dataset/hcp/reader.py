@@ -34,7 +34,7 @@ class HcpReader:
         self.model = Config.get_option('DATABASE', 'model', None)
         self.registration = Config.get_option('DATABASE', 'registration', None)
 
-        self.file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz'}
+        self.file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz'}
 
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
@@ -107,6 +107,10 @@ class HcpReader:
 
         try:
             dwi_tensor, affine = load_nifti(self._processed_tensor_url(subject))
+
+            if len(dwi_tensor.shape) == 3:
+                dwi_tensor = np.expand_dims(dwi_tensor, axis=3)
+
             dwi_tensor = dwi_tensor.transpose((3, 0, 1, 2))
         except FileNotFoundError:
             raise SkipSubjectException(f'File for subject {subject} not found')
