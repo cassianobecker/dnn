@@ -15,7 +15,8 @@ from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.reconst.csdeconv import auto_response
 from dipy.core.gradients import gradient_table
 from dipy.io import read_bvals_bvecs
-
+import nibabel as nib
+from dipy.align.reslice import reslice
 
 class HcpDwiProcessor:
 
@@ -36,6 +37,8 @@ class HcpDwiProcessor:
 
         self.template_folder = absolute_path(Config.config['TEMPLATE']['folder'])
         self.template_file = Config.get_option('TEMPLATE', 'template', 'FMRIB58_FA_125mm.nii.gz')
+
+        self.resolution = int(Config.get_option('TEMPLATE', 'resolution', '125'))
 
         # instead of 'FMRIB58_FA-mask_125mm.nii.gz'
         self.mask_file = Config.get_option('TEMPLATE', 'mask', 'FMRIB58_FA-mask_125mm_edit.nii.gz')
@@ -72,17 +75,17 @@ class HcpDwiProcessor:
 
     def register_rigid(self, subject):
 
-        static_url = self._template_fa_url()
-        static, static_affine = load_nifti(static_url)
+        # static_url = self._template_fa_url()
+        # static, static_affine = load_nifti(static_url)
 
         moving_url = self._get_moving_fa(subject)
 
-        moving, moving_affine = load_nifti(moving_url)
-
-        rigid_affine = find_rigid_affine(static, static_affine,  moving, moving_affine)
-
-        rigid_affine_url = self._url_moving_dwi(subject, 'rigid_affine.nii.gz')
-        save_nifti(rigid_affine_url, rigid_affine.affine, rigid_affine.affine)
+        # moving, moving_affine = load_nifti(moving_url)
+        #
+        # rigid_affine = find_rigid_affine(static, static_affine,  moving, moving_affine)
+        #
+        # rigid_affine_url = self._url_moving_dwi(subject, 'rigid_affine.nii.gz')
+        # save_nifti(rigid_affine_url, rigid_affine.affine, rigid_affine.affine)
 
         # find linear registration transformation
 
@@ -141,11 +144,47 @@ class HcpDwiProcessor:
         warped_bvecs_url = self._url_registered_dwi(subject, 'bvecs')
         shutil.copyfile(bvecs_url, warped_bvecs_url)
 
+    def _resample_images(self, subject):
+
+        old_urls = [self._url_mirror_dwi(subject, 'data.nii.gz'),
+                    self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')]
+
+        new_urls = [self._url_moving_dwi(subject, f'data.nii.gz'),
+                    self._url_moving_dwi(subject, f'nodif_brain_mask.nii.gz')]
+
+        for old_url, new_url in zip(old_urls, new_urls):
+            self._resample_image(old_url, new_url, self.resolution/100.)
+
+        return new_urls
+
+    def _resample_image(self, old_url, new_url, new_zoom):
+
+        # from https://dipy.org/documentation/1.0.0./examples_built/reslice_datasets/
+
+        img = nib.load(old_url)
+        data = img.get_data()
+        zooms = img.header.get_zooms()[:3]
+        affine = img.affine
+
+        new_zooms = tuple([new_zoom] * 3)
+        new_data, new_affine = reslice(data, affine, zooms, new_zooms)
+
+        save_nifti(new_url, new_data, new_affine)
+
+    def _spatial_resampling(self):
+        return self.resolution != 125
+
     def _get_moving_fa(self, subject):
 
+        if self._spatial_resampling():
+            data_url, mask_url = self._resample_images(subject)
+        else:
+            data_url = self._url_mirror_dwi(subject, 'data.nii.gz')
+            mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
+
         dti_params = {
-            'data': self._url_mirror_dwi(subject, 'data.nii.gz'),
-            'mask': self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+            'data': data_url,
+            'mask': mask_url,
             'bvals': self._url_mirror_dwi(subject, 'bvals'),
             'bvecs': self._url_mirror_dwi(subject, 'bvecs'),
             'output': self._url_moving_dwi(subject, 'dti')
@@ -162,18 +201,21 @@ class HcpDwiProcessor:
         subprocess.run(fslconvert_command_str, shell=True, check=True)
         converted_moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
 
-        moving_md_url = self._url_moving_dwi(subject, 'dti_MD.*')
-        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_md_url}'
-        subprocess.run(fslconvert_command_str, shell=True, check=True)
-        converted_moving_md_url = self._url_moving_dwi(subject, 'dti_MD.nii.gz')
+        # moving_md_url = self._url_moving_dwi(subject, 'dti_MD.*')
+        # fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_md_url}'
+        # subprocess.run(fslconvert_command_str, shell=True, check=True)
+        # converted_moving_md_url = self._url_moving_dwi(subject, 'dti_MD.nii.gz')
+        #
+        # fa, affine_fa = load_nifti(converted_moving_fa_url)
+        # md, _ = load_nifti(converted_moving_md_url)
+        #
+        # wm_mask = get_mask(fa, md)
+        # wm_mask_url = self._url_moving_dwi(subject, 'dti_WM.nii.gz')
+        # affine_wm = affine_fa
+        # save_nifti(wm_mask_url, wm_mask, affine_wm)
 
-        fa, affine_fa = load_nifti(converted_moving_fa_url)
-        md, _ = load_nifti(converted_moving_md_url)
-
-        wm_mask = get_mask(fa, md)
-        wm_mask_url = self._url_moving_dwi(subject, 'dti_WM.nii.gz')
-        affine_wm = affine_fa
-        save_nifti(wm_mask_url, wm_mask, affine_wm)
+        if self._spatial_resampling() and os.path.isfile(data_url):
+            os.remove(data_url)
 
         return converted_moving_fa_url
 
@@ -253,7 +295,8 @@ class HcpDwiProcessor:
         return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', 'Diffusion', file_name)
 
     def _path_moving_dwi(self, subject):
-        path = os.path.join(self.processing_folder, subject, 'moving')
+
+        path = os.path.join(self.processing_folder, subject, f'moving{self.resolution}')
         if not os.path.isdir(path):
             os.makedirs(path)
         return path
