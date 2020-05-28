@@ -134,7 +134,7 @@ class DnnHcpUnitKernel1(nn.Module):
         super(DnnHcpUnitKernel1, self).__init__()
 
         k = 5
-        s = 3
+        s = 2
 
         img_channels = img_dims[0]
         kernel_dims1 = [k, k, k]
@@ -143,7 +143,7 @@ class DnnHcpUnitKernel1(nn.Module):
         strides2 = [s, s, s]
         c_out1 = 128
         c_out2 = 64
-        pool_size = 2
+        pool_size = 3
 
         self.conv0 = DwiConv3dUnitKernel(img_channels, c_out1, cholesky_weights=cholesky_weights)
         self.conv1 = nn.Conv3d(c_out1, c_out2, kernel_dims1, strides1)
@@ -248,7 +248,7 @@ class DnnHcpUnitKernel3(nn.Module):
         super(DnnHcpUnitKernel3, self).__init__()
 
         k = 7
-        s = 2
+        s = 3
 
         img_channels = img_dims[0]
         kernel_dims1 = [k, k, k]
@@ -312,16 +312,16 @@ class DnnHcpUnitKernel4(nn.Module):
         kernel_dims2 = [k, k, k]
         strides1 = [s, s, s]
         strides2 = [s, s, s]
-        c_out1 = 128
-        c_out2 = 64
-        pool_size = 2
+        c_out1 = 2*128
+        c_out2 = 2*64
+        pool_size = 3
 
         self.conv0 = DwiConv3dUnitKernel(img_channels, c_out1, cholesky_weights=cholesky_weights)
         self.conv1 = nn.Conv3d(c_out1, c_out2, kernel_dims1, strides1)
         self.conv2 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
 
-        self.dropout1 = nn.Dropout3d(0.2)
-        self.dropout2 = nn.Dropout2d(0.2)
+        self.dropout1 = nn.Dropout3d(0.25)
+        self.dropout2 = nn.Dropout2d(0.5)
         self.max1 = nn.MaxPool3d(pool_size)
 
         linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
