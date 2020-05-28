@@ -3,6 +3,8 @@
 
 source activate dnn-cluster
 
+module load mrtrix
+
 nvcc --version
 echo Host name: `hostname`
 nvidia-smi
