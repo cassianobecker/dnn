@@ -248,7 +248,7 @@ class DnnHcpUnitKernel3(nn.Module):
         super(DnnHcpUnitKernel3, self).__init__()
 
         k = 7
-        s = 3
+        s = 2
 
         img_channels = img_dims[0]
         kernel_dims1 = [k, k, k]
@@ -381,7 +381,7 @@ class DnnHcpUnitKernelShallow(nn.Module):
         self.dropout2 = nn.Dropout2d(0.2)
         self.max1 = nn.MaxPool3d(pool_size)
 
-        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
+        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.max1])
 
         # linear_size1 = 28224
         linear_size2 = 128
