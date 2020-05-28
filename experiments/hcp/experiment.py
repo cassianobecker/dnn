@@ -44,7 +44,7 @@ class BatchTrain:
             self.train_batch(epoch)
             self.test_batch(epoch)
 
-            self.scheduler.step()
+            # self.scheduler.step()
 
             MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
@@ -109,7 +109,12 @@ class BatchTrain:
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
 
-        self.optimizer = optim.Adadelta(
+        # self.optimizer = optim.Adadelta(
+        #     self.model.parameters(),
+        #     lr=float(Config.config['ALGORITHM']['lr'])
+        # )
+
+        self.optimizer = optim.Adam(
             self.model.parameters(),
             lr=float(Config.config['ALGORITHM']['lr'])
         )
