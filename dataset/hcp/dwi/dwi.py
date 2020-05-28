@@ -9,6 +9,7 @@ from dataset.hcp.dwi.mask import get_mask
 
 from dataset.hcp.hcp import HcpDiffusionDatabase
 from dataset.hcp.dwi.registration import find_prealign_affine, find_warp, apply_warp_on_volumes, find_rigid_affine
+import dataset.hcp.dwi.mrtrix as mrtix
 
 from dipy.io.image import load_nifti, save_nifti
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
@@ -61,7 +62,7 @@ class HcpDwiProcessor:
 
         self.logger.info(f'registering subject {subject}')
         # self.register_nonlinear(subject)
-        self.register_rigid(subject)
+        # self.register_rigid(subject)
 
         # self.logger.info(f'fitting dti for subject {subject}')
         # self.fit_dti(subject)
@@ -69,9 +70,72 @@ class HcpDwiProcessor:
         # self.logger.info(f'fitting odf for subject {subject}')
         # self.fit_odf(subject)
 
-        if delete_folders is True:
-            self.logger.info(f'cleaning up for subject {subject}')
-            self.clean(subject)
+        self.fit_odf_mrtrix(subject)
+
+        # if delete_folders is True:
+        #     self.logger.info(f'cleaning up for subject {subject}')
+        #     self.clean(subject)
+
+    def fit_odf_mrtrix(self, subject):
+
+        cwd = self._path_moving_dwi(subject)
+
+        # 1 of 5 #####
+        # '5ttgen fsl T1w_acpc_dc_restore_brain.nii.gz 5TT.mif -premasked'
+
+        fiveTT_url = '5TT.mif'
+        T1w_acpc_dc_restore_brain_url = self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')
+
+        str_cmd = f'5ttgen fsl  {T1w_acpc_dc_restore_brain_url } {fiveTT_url} -premasked'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 2 of 5 ######
+        # 'mrconvert data.nii.gz DWI.mif -fslgrad bvecs bvals -datatype float32 -strides 0,0,0,1'
+
+        data_file_url = self._url_mirror_dwi(subject, 'data.nii.gz')
+        bvecs_url = self._url_mirror_dwi(subject, 'bvecs')
+        bvals_url = self._url_mirror_dwi(subject, 'bvals')
+        mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
+
+        DWI_url = 'DWI.mif'
+
+        str_cmd = f'mrconvert ' \
+                  f'{data_file_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 3 of 5 ######
+        # 'dwiextract DWI.mif - -bzero | mrmath - mean meanb0.mif -axis 3'
+
+        str_cmd = f'dwiextract {DWI_url} - -bzero | mrmath - mean meanb0.mif -axis 3'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 4 of 5 ######
+        # 'dwi2response msmt_5tt DWI.mif 5TT.mif RF_WM.txt RF_GM.txt RF_CSF.txt -voxels RF_voxels.mif'
+        RF_WM_url = 'RF_WM.txt'
+        RF_GM_url = 'RF_GM.txt'
+        RF_CSF_url = 'RF_CSF.txt'
+        RF_voxels_url = 'RF_voxels.mif'
+
+        str_cmd = f'dwi2response msmt_5tt ' \
+                  f'{DWI_url} {fiveTT_url} {RF_WM_url} {RF_GM_url} {RF_CSF_url} -voxels {RF_voxels_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 5 of 5 ######
+        # 'dwi2fod msmt_csd DWI.mif RF_WM.txt WM_FODs.mif RF_GM.txt GM.mif RF_CSF.txt CSF.mif
+        # -mask nodif_brain_mask.nii.gz'
+
+        WM_FOD_url = 'WM_FODs.mif'
+        GM_url = 'GM.mif'
+        CSF_url = 'CSF.mif'
+
+        str_cmd = f'dwi2fod msmt_csd ' \
+                  f'{DWI_url} {RF_WM_url} {WM_FOD_url} {RF_GM_url} {GM_url} {RF_CSF_url} {CSF_url} -mask {mask_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
     def register_rigid(self, subject):
 
@@ -293,6 +357,10 @@ class HcpDwiProcessor:
 
     def _url_mirror_dwi(self, subject, file_name):
         return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', 'Diffusion', file_name)
+
+    def _url_mirror_t1w(self, subject, file_name):
+        return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', file_name)
+
 
     def _path_moving_dwi(self, subject):
 

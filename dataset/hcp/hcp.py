@@ -62,7 +62,7 @@ class HcpDiffusionDatabase:
         return subjects
 
     def subject_batch(self, batch_index, number_of_batches):
-        batch_size = int(len(self.subjects) / (number_of_batches - 1))
+        batch_size = int(len(self.subjects) / (number_of_batches - 1)) if number_of_batches > 1 else int(len(self.subjects))
         initial = batch_index * batch_size
         final = (batch_index + 1) * batch_size
         return self.subjects[initial:final]
