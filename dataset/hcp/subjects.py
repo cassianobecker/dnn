@@ -50,7 +50,7 @@ class Subjects:
         subjects = [file for file in files if bool(re.match(subject_pattern, file))]
 
         model = Config.get_option('DATABASE', 'model', None)
-        file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz'}
+        file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz', 'odf_mrtrix': 'WM_FODs.nii.gz'}
 
         def url_for_subject(subject):
             registration = Config.get_option('DATABASE', 'registration', None)

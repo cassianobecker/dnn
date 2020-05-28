@@ -34,7 +34,8 @@ class HcpReader:
         self.model = Config.get_option('DATABASE', 'model', None)
         self.registration = Config.get_option('DATABASE', 'registration', None)
 
-        self.file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz'}
+        self.file_names = {
+            'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz', 'odf_mrtrix': 'WM_FODs.nii.gz'}
 
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
