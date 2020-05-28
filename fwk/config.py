@@ -176,7 +176,7 @@ class ConfigProductGenerator:
 
 def _test_save_configs():
 
-    config_url = 'test/args.ini'
+    config_url = 'test/args_mrtrix.ini'
     config_generator = ConfigProductGenerator(config_url)
     config_generator.save_config_products()
 

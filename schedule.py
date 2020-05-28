@@ -59,7 +59,7 @@ class ExperimentScheduler:
     @classmethod
     def print_usage(cls, argv):
 
-        print('Usage: python schedule <runner> <args.ini>')
+        print('Usage: python schedule <runner> <args_mrtrix.ini>')
         print(f'    implemented runners: {cls.list_runners()}')
 
     @classmethod
