@@ -103,8 +103,13 @@ class HcpDwiProcessor:
 
         DWI_url = 'DWI.mif'
 
+        # if latest MRTRIX VERSION (see strides option with s)
+        # str_cmd = f'mrconvert ' \
+        #           f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
+
+        # if cbica MRTRIX VERSION (see stride option without s)
         str_cmd = f'mrconvert ' \
-                  f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
+                  f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -stride 0,0,0,1'
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
