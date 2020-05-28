@@ -44,6 +44,8 @@ class BatchTrain:
             self.train_batch(epoch)
             self.test_batch(epoch)
 
+            self.scheduler.step()
+
             MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
             if to_bool(Config.config['OUTPUTS']['save_model']) is True:
