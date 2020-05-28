@@ -9,7 +9,6 @@ from dataset.hcp.dwi.mask import get_mask
 
 from dataset.hcp.hcp import HcpDiffusionDatabase
 from dataset.hcp.dwi.registration import find_prealign_affine, find_warp, apply_warp_on_volumes, find_rigid_affine
-import dataset.hcp.dwi.mrtrix as mrtix
 
 from dipy.io.image import load_nifti, save_nifti
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
@@ -18,6 +17,7 @@ from dipy.core.gradients import gradient_table
 from dipy.io import read_bvals_bvecs
 import nibabel as nib
 from dipy.align.reslice import reslice
+
 
 class HcpDwiProcessor:
 
@@ -80,39 +80,40 @@ class HcpDwiProcessor:
 
         cwd = self._path_moving_dwi(subject)
 
-        # 1 of 5 #####
+        if self._spatial_resampling():
+            data_url, mask_url = self._resample_images(subject)
+        else:
+            data_url = self._url_mirror_dwi(subject, 'data.nii.gz')
+            mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
+
+        t1w_url = self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')
+
         # '5ttgen fsl T1w_acpc_dc_restore_brain.nii.gz 5TT.mif -premasked'
 
         fiveTT_url = '5TT.mif'
-        T1w_acpc_dc_restore_brain_url = self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')
 
-        str_cmd = f'5ttgen fsl  {T1w_acpc_dc_restore_brain_url } {fiveTT_url} -premasked'
+        str_cmd = f'5ttgen fsl  {t1w_url } {fiveTT_url} -premasked'
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
-        # 2 of 5 ######
         # 'mrconvert data.nii.gz DWI.mif -fslgrad bvecs bvals -datatype float32 -strides 0,0,0,1'
 
-        data_file_url = self._url_mirror_dwi(subject, 'data.nii.gz')
         bvecs_url = self._url_mirror_dwi(subject, 'bvecs')
         bvals_url = self._url_mirror_dwi(subject, 'bvals')
-        mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
 
         DWI_url = 'DWI.mif'
 
         str_cmd = f'mrconvert ' \
-                  f'{data_file_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
+                  f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
-        # 3 of 5 ######
         # 'dwiextract DWI.mif - -bzero | mrmath - mean meanb0.mif -axis 3'
 
         str_cmd = f'dwiextract {DWI_url} - -bzero | mrmath - mean meanb0.mif -axis 3'
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
-        # 4 of 5 ######
         # 'dwi2response msmt_5tt DWI.mif 5TT.mif RF_WM.txt RF_GM.txt RF_CSF.txt -voxels RF_voxels.mif'
         RF_WM_url = 'RF_WM.txt'
         RF_GM_url = 'RF_GM.txt'
@@ -124,7 +125,6 @@ class HcpDwiProcessor:
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
 
-        # 5 of 5 ######
         # 'dwi2fod msmt_csd DWI.mif RF_WM.txt WM_FODs.mif RF_GM.txt GM.mif RF_CSF.txt CSF.mif
         # -mask nodif_brain_mask.nii.gz'
 
@@ -136,6 +136,27 @@ class HcpDwiProcessor:
                   f'{DWI_url} {RF_WM_url} {WM_FOD_url} {RF_GM_url} {GM_url} {RF_CSF_url} {CSF_url} -mask {mask_url}'
 
         subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # mrconvert WM_FODs.mif WM_FODs.nii.gz
+        WM_FOD_nifti_url = 'WM_FODs.nii.gz'
+
+        str_cmd = f'mrconvert {WM_FOD_url} {WM_FOD_nifti_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # delete temporary files
+        urls_to_delete = [DWI_url, WM_FOD_url, fiveTT_url, RF_voxels_url, CSF_url, GM_url]
+        self._delete_urls(urls_to_delete, subject)
+
+        if self._spatial_resampling():
+            urls_to_delete = [data_url, mask_url]
+            self._delete_urls(urls_to_delete, subject)
+
+    def _delete_urls(self, urls_to_delete, subject):
+        for rel_url in urls_to_delete:
+            url = os.path.join(self._path_moving_dwi(subject), rel_url)
+            if os.path.isfile(url):
+                os.remove(url)
 
     def register_rigid(self, subject):
 
@@ -210,6 +231,14 @@ class HcpDwiProcessor:
 
     def _resample_images(self, subject):
 
+        # old_urls = [self._url_mirror_dwi(subject, 'data.nii.gz'),
+        #             self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+        #             self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')]
+        #
+        # new_urls = [self._url_moving_dwi(subject, f'data.nii.gz'),
+        #             self._url_moving_dwi(subject, f'nodif_brain_mask.nii.gz'),
+        #             self._url_moving_dwi(subject, f'T1w_acpc_dc_restore_brain.nii.gz')]
+
         old_urls = [self._url_mirror_dwi(subject, 'data.nii.gz'),
                     self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')]
 
@@ -236,7 +265,7 @@ class HcpDwiProcessor:
         save_nifti(new_url, new_data, new_affine)
 
     def _spatial_resampling(self):
-        return self.resolution != 125
+        return not self.resolution == 125
 
     def _get_moving_fa(self, subject):
 
