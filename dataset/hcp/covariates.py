@@ -23,13 +23,19 @@ class Covariates:
 
             raise FileNotFoundError(error_str)
 
-    def value(self, field, subject):
+    def value(self, field, subject, regression=True):
 
-        dfd = pd.get_dummies(self.df[field])
-        df = pd.concat([self.df, dfd], axis=1)[['Subject'] + list(dfd.columns)]
+        if regression is True:
+            mean = self.df[field].mean()
+            std = self.df[field].std()
+            values = self.df[self.df['Subject'] == int(subject)][field].values[0]
+            values = (values - mean) / std
+        else:
+            dfd = pd.get_dummies(self.df[field])
+            df = pd.concat([self.df, dfd], axis=1)[['Subject'] + list(dfd.columns)]
 
-        row = df.loc[df['Subject'] == int(subject)]
-        values = row[dfd.columns].values[0]
+            row = df.loc[df['Subject'] == int(subject)]
+            values = row[dfd.columns].values[0]
 
         return values
 

@@ -133,12 +133,16 @@ class BatchTrain:
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
+            # dwi_tensors, targets = dwi_tensors.to(self.device).type(
+            #     torch.float32), targets.to(self.device).type(torch.long)
+
             dwi_tensors, targets = dwi_tensors.to(self.device).type(
-                torch.float32), targets.to(self.device).type(torch.long)
+                torch.float32), targets.to(self.device).type(torch.float32)
 
             # self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
-            loss = F.nll_loss(outputs, one_hot_to_int(targets))
+            # loss = F.nll_loss(outputs, one_hot_to_int(targets))
+            loss = F.mse_loss(outputs, targets)
             loss.backward()
             # self.optimizer.step()
 
