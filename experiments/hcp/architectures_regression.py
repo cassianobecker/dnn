@@ -19,8 +19,8 @@ class DnnHcpUnitKernelRegression(nn.Module):
         kernel_dims2 = [k, k, k]
         strides1 = [s, s, s]
         strides2 = [s, s, s]
-        c_out1 = 12
-        c_out2 = 6
+        c_out1 = 128
+        c_out2 = 64
         pool_size = 3
 
         self.conv0 = DwiConv3dUnitKernel(img_channels, c_out1, cholesky_weights=cholesky_weights)
