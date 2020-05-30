@@ -25,13 +25,14 @@ class DnnHcpUnitKernelRegression(nn.Module):
 
         self.conv0 = DwiConv3dUnitKernel(img_channels, c_out1, cholesky_weights=cholesky_weights)
         self.conv1 = nn.Conv3d(c_out1, c_out2, kernel_dims1, strides1)
-        self.conv2 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
+        # self.conv2 = nn.Conv3d(c_out2, c_out2, kernel_dims2, strides2)
 
-        self.dropout1 = nn.Dropout3d(0.25)
+        # self.dropout1 = nn.Dropout3d(0.25)
         self.dropout2 = nn.Dropout2d(0.5)
-        self.max1 = nn.MaxPool3d(pool_size)
+        # self.max1 = nn.MaxPool3d(pool_size)
 
-        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.max1, self.conv2])
+        # linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.max1, self.conv2])
+        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1])
 
         # linear_size1 = 28224
         linear_size2 = 128
@@ -42,16 +43,16 @@ class DnnHcpUnitKernelRegression(nn.Module):
     def forward(self, x):
 
         x = self.conv0(x)
-        x = func.relu(x)
+        # x = func.relu(x)
 
         x = self.conv1(x)
         x = func.relu(x)
-        x = self.max1(x)
+        # x = self.max1(x)
 
-        x = self.conv2(x)
-        x = func.relu(x)
+        # x = self.conv2(x)
+        # x = func.relu(x)
 
-        x = self.dropout1(x)
+        # x = self.dropout1(x)
 
         x = torch.flatten(x, 1)
         x = self.fc1(x)
