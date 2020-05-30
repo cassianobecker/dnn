@@ -31,7 +31,7 @@ class DnnHcpUnitKernelRegression(nn.Module):
         self.dropout2 = nn.Dropout2d(0.5)
         self.max1 = nn.MaxPool3d(pool_size)
 
-        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.conv2, self.max1])
+        linear_size1 = Dimensions().dimensions_for_linear(img_dims, [self.conv0, self.conv1, self.max1, self.conv2])
 
         # linear_size1 = 28224
         linear_size2 = 128
@@ -42,13 +42,15 @@ class DnnHcpUnitKernelRegression(nn.Module):
     def forward(self, x):
 
         x = self.conv0(x)
+        x = func.relu(x)
 
         x = self.conv1(x)
         x = func.relu(x)
+        x = self.max1(x)
 
         x = self.conv2(x)
         x = func.relu(x)
-        x = self.max1(x)
+
         x = self.dropout1(x)
 
         x = torch.flatten(x, 1)
