@@ -61,6 +61,6 @@ class DnnHcpUnitKernelRegression(nn.Module):
 
         # output = func.log_softmax(x, dim=1)
 
-        output = torch.squeeze(x)
+        output = x[:, 0]
 
         return output

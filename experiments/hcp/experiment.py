@@ -139,16 +139,16 @@ class BatchTrain:
             dwi_tensors, targets = dwi_tensors.to(self.device).type(
                 torch.float32), targets.to(self.device).type(torch.float32)
 
-            # self.optimizer.zero_grad()
+            self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
             # loss = F.nll_loss(outputs, one_hot_to_int(targets))
             loss = F.mse_loss(outputs, targets)
             loss.backward()
-            # self.optimizer.step()
+            self.optimizer.step()
 
-            if (batch_idx + 1) % self.accumulation_steps == 0:
-                self.optimizer.step()
-                self.model.zero_grad()
+            # if (batch_idx + 1) % self.accumulation_steps == 0:
+            #     self.optimizer.step()
+            #     self.model.zero_grad()
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
