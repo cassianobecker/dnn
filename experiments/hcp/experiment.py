@@ -25,6 +25,7 @@ class BatchTrain:
         self.device = None
         self.data_loaders = dict()
         self.accumulation_steps = None
+        self.regression = None
 
     def execute(self):
 
@@ -67,6 +68,7 @@ class BatchTrain:
         cholesky_weights = to_bool(Config.get_option('ARCHITECTURE', 'cholesky_weights', 'False'))
 
         perturb = to_bool(Config.get_option('DATABASE', 'perturb', 'False'))
+        self.regression = to_bool(Config.get_option('COVARIATES', 'regression', 'False'))
 
         train_subjects, test_subjects = Subjects.create_list_from_config()
 
@@ -75,7 +77,8 @@ class BatchTrain:
             subjects=train_subjects,
             half_precision=half_precision,
             max_img_channels=max_img_channels,
-            perturb=perturb
+            perturb=perturb,
+            regression=self.regression
         )
 
         self.data_loaders['train'] = HcpDataLoader(
@@ -89,7 +92,8 @@ class BatchTrain:
             subjects=test_subjects,
             half_precision=half_precision,
             max_img_channels=max_img_channels,
-            perturb=False
+            perturb=False,
+            regression=self.regression
         )
 
         self.data_loaders['test'] = HcpDataLoader(
@@ -141,8 +145,12 @@ class BatchTrain:
 
             self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
-            # loss = F.nll_loss(outputs, one_hot_to_int(targets))
-            loss = F.mse_loss(outputs, targets)
+
+            if self.regression is True:
+                loss = F.mse_loss(outputs, targets)
+            else:
+                loss = F.nll_loss(outputs, one_hot_to_int(targets))
+
             loss.backward()
             self.optimizer.step()
 

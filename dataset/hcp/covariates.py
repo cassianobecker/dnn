@@ -23,7 +23,7 @@ class Covariates:
 
             raise FileNotFoundError(error_str)
 
-    def value(self, field, subject, regression=True):
+    def value(self, field, subject, regression=False):
 
         if regression is True:
             mean = self.df[field].mean()
@@ -33,7 +33,6 @@ class Covariates:
         else:
             dfd = pd.get_dummies(self.df[field])
             df = pd.concat([self.df, dfd], axis=1)[['Subject'] + list(dfd.columns)]
-
             row = df.loc[df['Subject'] == int(subject)]
             values = row[dfd.columns].values[0]
 

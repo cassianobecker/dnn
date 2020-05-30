@@ -14,7 +14,7 @@ class HcpDataset(torch.utils.data.Dataset):
     A PyTorch Dataset to host and dti diffusion data
     """
 
-    def __init__(self, device, subjects, half_precision=False, max_img_channels=None, perturb=False):
+    def __init__(self, device, subjects, half_precision=False, max_img_channels=None, perturb=False, regression=False):
 
         results_path = os.path.expanduser(Config.config['EXPERIMENT']['results_path'])
 
@@ -30,6 +30,7 @@ class HcpDataset(torch.utils.data.Dataset):
         self.max_img_channels = max_img_channels
 
         self.perturb = perturb
+        self.regression = regression
 
         self.reader = HcpReader()
 
@@ -70,7 +71,7 @@ class HcpDataset(torch.utils.data.Dataset):
                 perturb=perturb
             )
 
-            target = self.reader.load_covariate(subject)
+            target = self.reader.load_covariate(subject, regression=self.regression)
 
             if to_bool(Config.get_option('DATABASE', 'randomize', 'False')):
                 dwi_tensor = self._randomize_dwi_tensor(dwi_tensor, target)

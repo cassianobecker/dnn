@@ -154,8 +154,8 @@ class HcpReader:
 
         return transformed_dwi_tensor
 
-    def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject)
+    def load_covariate(self, subject, regression=False):
+        return self.covariates.value(self.field, subject, regression)
 
     def apply_mask(self, tensor):
 
