@@ -124,14 +124,13 @@ class BatchTrain:
             gamma=float(Config.config['ALGORITHM']['gamma'])
         )
 
-        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
-            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
-        else:
-            self.accumulation_steps = 1
+        self.accumulation_steps = int(Config.get_option('ALGORITHM', 'accumulation_steps', 1))
 
     def train_batch(self, epoch):
 
         self.model.train()
+
+        self.optimizer.zero_grad()
 
         for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
 
@@ -143,7 +142,7 @@ class BatchTrain:
             dwi_tensors, targets = dwi_tensors.to(self.device).type(
                 torch.float32), targets.to(self.device).type(torch.float32)
 
-            self.optimizer.zero_grad()
+            # self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
 
             if self.regression is True:
@@ -152,11 +151,11 @@ class BatchTrain:
                 loss = F.nll_loss(outputs, one_hot_to_int(targets))
 
             loss.backward()
-            self.optimizer.step()
+            # self.optimizer.step()
 
-            # if (batch_idx + 1) % self.accumulation_steps == 0:
-            #     self.optimizer.step()
-            #     self.model.zero_grad()
+            if (batch_idx + 1) % self.accumulation_steps == 0:
+                self.optimizer.step()
+                self.model.zero_grad()
 
             MetricsHandler.dispatch_event(locals(), 'after_train_batch')
 
