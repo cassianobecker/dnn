@@ -10,6 +10,12 @@ class Config:
     efficient = True
 
 
+class Flatten(torch.nn.Module):
+    def forward(self, x):
+        batch_size = x.shape[0]
+        return x.view(batch_size, -1)
+
+
 class DnnResnet(nn.Module):
 
     def __init__(self, img_dims, number_of_classes, cholesky_weights=False, half_precision=False):
@@ -103,6 +109,9 @@ def create_net(num_channels=1, num_classes=10):
 
     net = nn.Sequential(b1, b2, b3, b4, b5,
                         nn.AdaptiveMaxPool3d((1, 1, 1)),
-                        nn.Flatten(), nn.Linear(512, num_classes))
+                        Flatten(), nn.Linear(512, num_classes))
 
     return net
+
+
+
