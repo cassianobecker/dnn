@@ -52,7 +52,7 @@ class Residual(nn.Module):
             self.conv3 = None
         self.bn1 = nn.BatchNorm3d(num_channels)
         self.bn2 = nn.BatchNorm3d(num_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
 
     def _forward_checkpointed(self, X):
         Y = cp.CheckpointFunction.apply(self.conv1, False, X)
