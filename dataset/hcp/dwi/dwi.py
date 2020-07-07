@@ -395,7 +395,6 @@ class HcpDwiProcessor:
     def _url_mirror_t1w(self, subject, file_name):
         return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', file_name)
 
-
     def _path_moving_dwi(self, subject):
 
         path = os.path.join(self.processing_folder, subject, f'moving{self.resolution}')
