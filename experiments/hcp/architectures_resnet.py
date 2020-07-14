@@ -112,6 +112,3 @@ def create_net(num_channels=1, num_classes=10):
                         Flatten(), nn.Linear(512, num_classes))
 
     return net
-
-
-

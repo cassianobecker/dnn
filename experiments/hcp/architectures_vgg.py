@@ -92,6 +92,6 @@ class Vgg11(DiffVGG):
 #     Args:
 #         pretrained (bool): If True, returns a model pre-trained on ImageNet
 #         progress (bool): If True, displays a progress bar of the download to stderr
-#         :param in_channels: number of channels
+#         :dwi_params in_channels: number of channels
 #     """
 #     return _vgg('vgg11', 'Z', img_dims, num_classes, False, pretrained, progress, **kwargs)

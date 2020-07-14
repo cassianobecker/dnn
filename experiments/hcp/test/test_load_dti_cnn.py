@@ -16,7 +16,7 @@ def experiment(params, args):
     """
     Sets up the experiment environment (loggers, data loaders, model, optimizer and scheduler) and initiates the
     train/test dti for the model.
-    :param args: keyword arguments from main() as parameters for the experiment
+    :dwi_params args: keyword arguments from main() as parameters for the experiment
     :return: None
     """
 

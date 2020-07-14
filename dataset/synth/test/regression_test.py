@@ -20,12 +20,13 @@ from dataset.synth.tract import Bundle, ControlPoint, Tractogram
 
 # general configurations
 base_path = '~/mitk/dnn/.dnn/datasets'
-dataset_name = 'synth4'
+dataset_name = 'synth5'
 
 # docker paths for Fiberfox
 docker_container_name = 'confident_nobel'
 base_path_on_docker = '/dnn/.dnn/datasets'
 fiberfox_executable = '/dnn/MitkDiffusion/MitkFiberfox.sh'
+# singularity exec docker://harangju/ubuntu-mitk:latest ~/mitk2/dnn/MitkDiffusion/MitkFiberfox.sh -o ~/mitk2 -i ~/mitk2/args/tracts.fib -p ~/mitk2/args/dwi_params.ffp
 
 
 def make_dir(path):
@@ -42,9 +43,10 @@ def copy_param_dir(src_param_dir, dest_param_dir):
 
 class FibercupRegressionDataset:
 
-    def __init__(self):
+    def __init__(self, dry_run=False):
 
         self.base_path = os.path.expanduser(base_path)
+        self.dry_run = dry_run
 
         self.radius = 64
         self.depth = 6
@@ -59,31 +61,34 @@ class FibercupRegressionDataset:
         self.odf_path = make_dir(join(self.base_path, dataset_name, 'odf'))
         self.param_path = join(self.base_path, dataset_name, 'params')
 
-        copy_param_dir(join(absolute_path('dataset'), 'synth', 'param'), join(self.base_path, dataset_name, 'params'))
+        copy_param_dir(join(absolute_path('dataset'), 'synth', 'dwi_params'), join(self.base_path, dataset_name, 'params'))
 
         self.flip_evecs()
 
-    def generate_samples(self, num_samples, show_plot=False):
+    def process_subject(self, sample_id):
 
         edge = (6, 7)
 
+        self.tractogram.bundles.pop(edge, None)
+
+        shift = npr.rand()
+        offset = np.array([shift, 0, 0])
+        bundle = self.create_bundle(edge, offset)
+
+        self.tractogram.add(edge, bundle)
+
+        self.save_tract_and_label(sample_id, self.tractogram, label=shift, show_plot=False)
+
+        self.simulate_dwi(sample_id)
+
+        self.fit_dti(sample_id)
+
+        self.fit_odf(sample_id)
+
+    def generate_samples(self, num_samples):
+
         for sample_id in range(num_samples):
-
-            self.tractogram.bundles.pop(edge, None)
-
-            shift = npr.rand()
-            offset = np.array([shift, 0, 0])
-            bundle = self.create_bundle(edge, offset)
-
-            self.tractogram.add(edge, bundle)
-
-            self.save_tract_and_label(sample_id, self.tractogram, label=shift, show_plot=show_plot)
-
-            self.simulate_dwi(sample_id)
-
-            self.fit_dti(sample_id)
-
-            self.fit_odf(sample_id)
+            self.process_subject(sample_id)
 
     def save_tract_and_label(self, sample_id, tractogram, label, show_plot=False):
 
@@ -137,7 +142,7 @@ class FibercupRegressionDataset:
 
         # define all paths relative to docker
         dwi_base_path = base_path_on_docker
-        params_url = join(dwi_base_path, dataset_name, 'params', 'param.ffp')
+        params_url = join(dwi_base_path, dataset_name, 'params', 'dwi_params.ffp')
         tracts_url = join(dwi_base_path, dataset_name, 'tracts', f'{sample_id}', 'tracts.fib')
         target_url = join(dwi_base_path, dataset_name, 'dwi', f'{sample_id}', 'data')
 
@@ -233,8 +238,8 @@ class FibercupRegressionDataset:
     def flip_evecs(self, flips=(1, -1, 1)):
 
         # flip eigenvectors for compatibility between Mitk Fiberfox and FSL dtifit
-        bvals_url = join(self.param_path, 'param.ffp.bvals')
-        bvecs_url = join(self.param_path, 'param.ffp.bvecs')
+        bvals_url = join(self.param_path, 'dwi_params.ffp.bvals')
+        bvecs_url = join(self.param_path, 'dwi_params.ffp.bvecs')
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         new_bvecs = bvecs @ np.diag(flips)
         return self.save_bvals_bvecs(bvals, new_bvecs)
@@ -247,8 +252,8 @@ class FibercupRegressionDataset:
 
         # bvals_url = self._flipped_bvals_url()
         # bvecs_url = self._flipped_bvecs_url()
-        bvals_url = join(self.param_path, 'param.ffp.bvals')
-        bvecs_url = join(self.param_path, 'param.ffp.bvecs')
+        bvals_url = join(self.param_path, 'dwi_params.ffp.bvals')
+        bvecs_url = join(self.param_path, 'dwi_params.ffp.bvecs')
 
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         gtab = gradient_table(bvals, bvecs)
