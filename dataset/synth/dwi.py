@@ -102,8 +102,8 @@ class SynthProcessor:
             target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
         else:
             params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
-            tracts_url = join(self.make_path(sample_id, 'tracts', 'params', container=True), 'tracts.fib')
-            target_url = join(self.make_path(sample_id, 'dwi''params', container=True), 'data')
+            tracts_url = join(self.make_path(sample_id, 'tracts', container=True), 'tracts.fib')
+            target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
 
         os.makedirs(self.make_path(sample_id, 'dwi', container=True), exist_ok=True)
 
