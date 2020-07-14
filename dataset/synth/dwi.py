@@ -94,11 +94,17 @@ class SynthProcessor:
         mask_path = self.make_path(sample_id, 'dwi', container=True)
         regression_dataset.make_mask(mask_path)
 
-    def simulate_dwi(self, sample_id):
-        # setup paths and files relative to container
-        params_url = join(self.container_relative_processing_path, 'params', DWI_PARAMS_FILE)
-        tracts_url = join(self.container_relative_processing_path, f'{sample_id}', 'tracts', 'tracts.fib')
-        target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
+    def simulate_dwi(self, sample_id, relative=False):
+        # setup paths and files for container use
+        if relative:
+            params_url = join(self.container_relative_processing_path, 'params', DWI_PARAMS_FILE)
+            tracts_url = join(self.container_relative_processing_path, f'{sample_id}', 'tracts', 'tracts.fib')
+            target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
+        else:
+            params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
+            tracts_url = join(self.make_path(sample_id, 'tracts', 'params', container=True), 'tracts.fib')
+            target_url = join(self.make_path(sample_id, 'dwi''params', container=True), 'data')
+
         os.makedirs(self.make_path(sample_id, 'dwi', container=True), exist_ok=True)
 
         # define executables
