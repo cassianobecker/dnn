@@ -100,19 +100,22 @@ class SynthProcessor:
             params_url = join(self.container_relative_processing_path, 'params', DWI_PARAMS_FILE)
             tracts_url = join(self.container_relative_processing_path, f'{sample_id}', 'tracts', 'tracts.fib')
             target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
+            fiberfox_executable = Config.get_option('DWI', 'fiberfox_executable_within_container')
         else:
             params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
             tracts_url = join(self.make_path(sample_id, 'tracts', container=True), 'tracts.fib')
             target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
+            fiberfox_executable = os.path.expanduser(join(
+                self.container_path,
+                Config.get_option('DWI', 'fiberfox_executable_within_container'),
+            ))
 
         os.makedirs(self.make_path(sample_id, 'dwi', container=True), exist_ok=True)
 
-        # define executables
         container_prefix = Config.get_option('DWI', 'container_prefix')
-        fiberfox_executable_on_container = Config.get_option('DWI', 'fiberfox_executable_within_container')
 
         str_cmd = f'{container_prefix} ' \
-                  f'{fiberfox_executable_on_container} ' \
+                  f'{fiberfox_executable} ' \
                   f'-o {target_url} ' \
                   f'-i {tracts_url} ' \
                   f'-p {params_url} ' \
