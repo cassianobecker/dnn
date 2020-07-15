@@ -107,7 +107,7 @@ class SynthProcessor:
             target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
             fiberfox_executable = os.path.expanduser(join(
                 self.container_path,
-                Config.get_option('DWI', 'fiberfox_executable_within_container').split(os.path.sep),
+                *Config.get_option('DWI', 'fiberfox_executable_within_container').split(os.path.sep),
             ))
 
         os.makedirs(self.make_path(sample_id, 'dwi', container=True), exist_ok=True)
