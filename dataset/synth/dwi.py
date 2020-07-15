@@ -39,8 +39,8 @@ class SynthProcessor:
         src_path = join(absolute_path('dataset'), 'synth', 'dwi_params')  # resource folder in codebase
         dest_path = self.dwi_params_path_on_container
 
-        if os.path.isdir(dest_path):
-            shutil.rmtree(dest_path)
+        # if os.path.isdir(dest_path):
+        #     shutil.rmtree(dest_path)
 
         os.makedirs(dest_path, exist_ok=True)
 
