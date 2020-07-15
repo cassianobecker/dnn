@@ -102,7 +102,8 @@ class SynthProcessor:
             target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
             fiberfox_executable = Config.get_option('DWI', 'fiberfox_executable_within_container')
         else:
-            params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
+            #params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
+            params_url = join(self.container_processing_path, 'params', DWI_PARAMS_FILE)
             tracts_url = join(self.make_path(sample_id, 'tracts', container=True), 'tracts.fib')
             target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
             fiberfox_executable = os.path.expanduser(join(
