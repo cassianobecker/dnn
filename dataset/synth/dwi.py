@@ -15,19 +15,20 @@ from util.path import absolute_path, copy_folder
 
 from dataset.synth.regression import FibercupRegressionDataset
 
-BASE_PATH_ON_CONTAINER = '/dnn/.dnn/processing'
-DWI_PARAMS_FILE = 'few_param.ffp'
-
 
 class SynthProcessor:
 
     def __init__(self, dry_run=False):
+
         self.dry_run = dry_run
         self.database_processing_path = os.path.expanduser(Config.get_option('DATABASE', 'local_processing_directory'))
+
         self.container_path = os.path.expanduser(Config.get_option('DWI', 'path_to_container'))
-        self.container_relative_processing_path = BASE_PATH_ON_CONTAINER
-        self.container_processing_path = join(self.container_path, *BASE_PATH_ON_CONTAINER.split(os.path.sep))
+        self.container_rel_proc_path = Config.get_option('DWI', 'container_relative_processing_path')
+        self.container_processing_path = join(self.container_path, *self.container_rel_proc_path.split(os.path.sep))
+
         self.dwi_params_path_on_container = join(self.container_processing_path, 'params')
+        self.dwi_params_file = (Config.get_option('DWI', 'dwi_params_file'))
         self.setup_dwi_params()
 
     def setup_dwi_params(self):
@@ -46,14 +47,14 @@ class SynthProcessor:
         suffixes = ['', '.bvals', '.bvecs']
 
         for suffix in suffixes:
-            src = join(src_path, DWI_PARAMS_FILE + suffix)
-            dest = join(dest_path, DWI_PARAMS_FILE + suffix)
+            src = join(src_path, self.dwi_params_file + suffix)
+            dest = join(dest_path, self.dwi_params_file + suffix)
             shutil.copyfile(src, dest)
 
     def flip_evecs(self, flips=(1, -1, 1)):
         # flip eigenvectors for compatibility between Mitk Fiberfox and FSL dtifit
-        bvals_url = join(self.dwi_params_path_on_container, DWI_PARAMS_FILE + '.bvals')
-        bvecs_url = join(self.dwi_params_path_on_container, DWI_PARAMS_FILE + '.bvecs')
+        bvals_url = join(self.dwi_params_path_on_container, self.dwi_params_file + '.bvals')
+        bvecs_url = join(self.dwi_params_path_on_container, self.dwi_params_file + '.bvecs')
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         new_bvecs = bvecs @ np.diag(flips)
         self.save_bvals_bvecs(bvals, new_bvecs)
@@ -63,10 +64,10 @@ class SynthProcessor:
         np.savetxt(self.flipped_bvecs_url(), bvecs.T, fmt='%2.6f', delimiter='  ')
 
     def flipped_bvals_url(self):
-        return join(self.dwi_params_path_on_container, 'flipped_' + DWI_PARAMS_FILE + '.bvals')
+        return join(self.dwi_params_path_on_container, 'flipped_' + self.dwi_params_file + '.bvals')
 
     def flipped_bvecs_url(self):
-        return join(self.dwi_params_path_on_container, 'flipped_' + DWI_PARAMS_FILE + '.bvecs')
+        return join(self.dwi_params_path_on_container, 'flipped_' + self.dwi_params_file + '.bvecs')
 
     def make_path(self, sample_id, paths, container=False):
         if container:
@@ -97,13 +98,13 @@ class SynthProcessor:
     def simulate_dwi(self, sample_id, relative=False):
         # setup paths and files for container use
         if relative:
-            params_url = join(self.container_relative_processing_path, 'params', DWI_PARAMS_FILE)
-            tracts_url = join(self.container_relative_processing_path, f'{sample_id}', 'tracts', 'tracts.fib')
-            target_url = join(self.container_relative_processing_path, f'{sample_id}', 'dwi', 'data')
+            params_url = join(self.container_rel_proc_path, 'params', self.dwi_params_file)
+            tracts_url = join(self.container_rel_proc_path, f'{sample_id}', 'tracts', 'tracts.fib')
+            target_url = join(self.container_rel_proc_path, f'{sample_id}', 'dwi', 'data')
             fiberfox_executable = Config.get_option('DWI', 'fiberfox_executable_within_container')
         else:
-            #params_url = join(self.make_path(None, 'params', container=True), DWI_PARAMS_FILE)
-            params_url = join(self.container_processing_path, 'params', DWI_PARAMS_FILE)
+            #params_url = join(self.make_path(None, 'params', container=True), self.dwi_params_file)
+            params_url = join(self.container_processing_path, 'params', self.dwi_params_file)
             tracts_url = join(self.make_path(sample_id, 'tracts', container=True), 'tracts.fib')
             target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
             fiberfox_executable = os.path.expanduser(join(
@@ -146,8 +147,8 @@ class SynthProcessor:
         dti_params = {
             'data':  join(self.make_path(sample_id, 'dwi'), 'data.nii.gz'),
             'mask': join(self.make_path(sample_id, 'dwi'), 'data_mask.nii.gz'),
-            'bvals': join(self.make_path(sample_id, 'params'), 'flipped_' + DWI_PARAMS_FILE + '.bvals'),
-            'bvecs': join(self.make_path(sample_id, 'params'), 'flipped_' + DWI_PARAMS_FILE + '.bvecs'),
+            'bvals': join(self.make_path(sample_id, 'params'), 'flipped_' + self.dwi_params_file + '.bvals'),
+            'bvecs': join(self.make_path(sample_id, 'params'), 'flipped_' + self.dwi_params_file + '.bvecs'),
             'output': join(self.make_path(sample_id, 'dti'), 'dti'),
         }
 
@@ -175,8 +176,8 @@ class SynthProcessor:
 
     def fit_odf(self, sample_id):
 
-        bvals_url = join(self.make_path(sample_id, 'params'), DWI_PARAMS_FILE + '.bvals')
-        bvecs_url = join(self.make_path(sample_id, 'params'), DWI_PARAMS_FILE + '.bvecs')
+        bvals_url = join(self.make_path(sample_id, 'params'), self.dwi_params_file + '.bvals')
+        bvecs_url = join(self.make_path(sample_id, 'params'), self.dwi_params_file + '.bvecs')
 
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         gtab = gradient_table(bvals, bvecs)
