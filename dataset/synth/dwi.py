@@ -6,7 +6,7 @@ import shutil
 
 from dipy.io.image import load_nifti, save_nifti
 from dipy.io import read_bvals_bvecs
-from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel, recursive_response
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 from dipy.reconst.csdeconv import auto_response
 from dipy.core.gradients import gradient_table
 
@@ -27,47 +27,7 @@ class SynthProcessor:
         self.container_rel_proc_path = Config.get_option('DWI', 'container_relative_processing_path')
         self.container_processing_path = join(self.container_path, *self.container_rel_proc_path.split(os.path.sep))
 
-        self.dwi_params_path_on_container = join(self.container_processing_path, 'params')
         self.dwi_params_file = (Config.get_option('DWI', 'dwi_params_file'))
-        self.setup_dwi_params()
-
-    def setup_dwi_params(self):
-        self.copy_dwi_params()
-        self.flip_evecs()
-
-    def copy_dwi_params(self):
-        src_path = join(absolute_path('dataset'), 'synth', 'dwi_params')  # resource folder in codebase
-        dest_path = self.dwi_params_path_on_container
-
-        # if os.path.isdir(dest_path):
-        #     shutil.rmtree(dest_path)
-
-        os.makedirs(dest_path, exist_ok=True)
-
-        suffixes = ['', '.bvals', '.bvecs']
-
-        for suffix in suffixes:
-            src = join(src_path, self.dwi_params_file + suffix)
-            dest = join(dest_path, self.dwi_params_file + suffix)
-            shutil.copyfile(src, dest)
-
-    def flip_evecs(self, flips=(1, -1, 1)):
-        # flip eigenvectors for compatibility between Mitk Fiberfox and FSL dtifit
-        bvals_url = join(self.dwi_params_path_on_container, self.dwi_params_file + '.bvals')
-        bvecs_url = join(self.dwi_params_path_on_container, self.dwi_params_file + '.bvecs')
-        bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
-        new_bvecs = bvecs @ np.diag(flips)
-        self.save_bvals_bvecs(bvals, new_bvecs)
-
-    def save_bvals_bvecs(self, bvals, bvecs):
-        np.savetxt(self.flipped_bvals_url(), np.expand_dims(bvals, axis=0), fmt='%d', delimiter='  ')
-        np.savetxt(self.flipped_bvecs_url(), bvecs.T, fmt='%2.6f', delimiter='  ')
-
-    def flipped_bvals_url(self):
-        return join(self.dwi_params_path_on_container, 'flipped_' + self.dwi_params_file + '.bvals')
-
-    def flipped_bvecs_url(self):
-        return join(self.dwi_params_path_on_container, 'flipped_' + self.dwi_params_file + '.bvecs')
 
     def make_path(self, sample_id, paths, container=False):
         if container:
@@ -77,11 +37,11 @@ class SynthProcessor:
 
         if not os.path.isdir(path):
             os.makedirs(path)
-
         return path
 
     def process_subject(self, sample_id):
         self.create_tractogram_files(sample_id)
+        self.setup_dwi_params(sample_id)
         self.simulate_dwi(sample_id)
         self.transfer_files_from_container(sample_id, delete_after=True)
         self.fit_dti(sample_id)
@@ -95,26 +55,60 @@ class SynthProcessor:
         mask_path = self.make_path(sample_id, 'dwi', container=True)
         regression_dataset.make_mask(mask_path)
 
-    def simulate_dwi(self, sample_id, relative=False):
+    def setup_dwi_params(self, sample_id):
+        self._copy_dwi_params(sample_id)
+        self._flip_evecs(sample_id, flips=(1, -1, 1))
+
+    def _copy_dwi_params(self, sample_id):
+        src_path = join(absolute_path('dataset'), 'synth', 'dwi_params')  # resource folder in codebase
+        dest_path = self.make_path(sample_id, 'params', container=True)
+        os.makedirs(dest_path, exist_ok=True)
+
+        suffixes = ['', '.bvals', '.bvecs']
+        for suffix in suffixes:
+            src = join(src_path, self.dwi_params_file + suffix)
+            dest = join(dest_path, self.dwi_params_file + suffix)
+            shutil.copyfile(src, dest)
+
+    def _flip_evecs(self, sample_id, flips=(1, -1, 1)):
+        # flip eigenvectors for compatibility between Mitk Fiberfox and FSL dtifit
+        bvals_url = join(self.make_path(sample_id, 'params', container=True), self.dwi_params_file + '.bvals')
+        bvecs_url = join(self.make_path(sample_id, 'params', container=True), self.dwi_params_file + '.bvecs')
+
+        bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
+        new_bvecs = bvecs @ np.diag(flips)
+
+        flipped_bvals_url = join(self.make_path(sample_id, 'params', container=True),
+                                 'flipped_' + self.dwi_params_file + '.bvals')
+        np.savetxt(flipped_bvals_url, np.expand_dims(bvals, axis=0), fmt='%d', delimiter='  ')
+
+        flipped_bvecs_url = join(self.make_path(sample_id, 'params', container=True),
+                                 'flipped_' + self.dwi_params_file + '.bvecs')
+        np.savetxt(flipped_bvecs_url, new_bvecs.T, fmt='%2.6f', delimiter='  ')
+
+    def simulate_dwi(self, sample_id):
         # setup paths and files for container use
-        if relative:
-            params_url = join(self.container_rel_proc_path, 'params', self.dwi_params_file)
+
+        container = Config.get_option('DWI', 'container_type', 'docker')
+
+        if container == 'docker':
+            params_url = join(self.container_rel_proc_path, f'{sample_id}', 'params', self.dwi_params_file)
             tracts_url = join(self.container_rel_proc_path, f'{sample_id}', 'tracts', 'tracts.fib')
             target_url = join(self.container_rel_proc_path, f'{sample_id}', 'dwi', 'data')
+            container_prefix = Config.get_option('DWI', 'docker_container_prefix')
             fiberfox_executable = Config.get_option('DWI', 'fiberfox_executable_within_container')
-        else:
-            #params_url = join(self.make_path(None, 'params', container=True), self.dwi_params_file)
-            params_url = join(self.container_processing_path, 'params', self.dwi_params_file)
+
+        elif container == 'singularity':
+            params_url = join(self.make_path(sample_id, 'params', container=True), self.dwi_params_file)
             tracts_url = join(self.make_path(sample_id, 'tracts', container=True), 'tracts.fib')
             target_url = join(self.make_path(sample_id, 'dwi', container=True), 'data')
+            container_prefix = Config.get_option('DWI', 'singularity_container_prefix')
             fiberfox_executable = os.path.expanduser(join(
                 self.container_path,
                 *Config.get_option('DWI', 'fiberfox_executable_within_container').split(os.path.sep),
             ))
 
         os.makedirs(self.make_path(sample_id, 'dwi', container=True), exist_ok=True)
-
-        container_prefix = Config.get_option('DWI', 'container_prefix')
 
         str_cmd = f'{container_prefix} ' \
                   f'{fiberfox_executable} ' \
@@ -126,13 +120,8 @@ class SynthProcessor:
         subprocess.run(str_cmd, shell=True, check=True)
 
     def transfer_files_from_container(self, sample_id, delete_after=False):
-        # # transfer parameters folder and do not delete source folder
-        src_folder = self.dwi_params_path_on_container
-        dest_folder = self.make_path(sample_id, 'params', container=False)
-        copy_folder(src_path=src_folder, dest_path=dest_folder, delete_src=False)
 
-        # transfer other folders, deletimg source folders
-        folders = ['tracts', 'dwi']
+        folders = ['tracts', 'dwi', 'params']
         for folder in folders:
             src_folder = self.make_path(sample_id, folder, container=True)
             dest_folder = self.make_path(sample_id, folder, container=False)
@@ -145,7 +134,7 @@ class SynthProcessor:
     def fit_dti(self, sample_id):
 
         dti_params = {
-            'data':  join(self.make_path(sample_id, 'dwi'), 'data.nii.gz'),
+            'data': join(self.make_path(sample_id, 'dwi'), 'data.nii.gz'),
             'mask': join(self.make_path(sample_id, 'dwi'), 'data_mask.nii.gz'),
             'bvals': join(self.make_path(sample_id, 'params'), 'flipped_' + self.dwi_params_file + '.bvals'),
             'bvecs': join(self.make_path(sample_id, 'params'), 'flipped_' + self.dwi_params_file + '.bvecs'),
@@ -186,10 +175,6 @@ class SynthProcessor:
 
         volumes, volumes_affine = load_nifti(volumes_url)
 
-        # response = recursive_response(gtab, volumes, sh_order=8,
-        #                               peak_thr=0.01, init_fa=0.08,
-        #                               init_trace=0.0021, iter=8, convergence=0.001,
-        #                               parallel=True)
         response, ratio = auto_response(gtab, volumes, roi_center=(29, 48, 2), roi_radius=1, fa_thr=0.24)
 
         csd_model = ConstrainedSphericalDeconvModel(gtab, response)
