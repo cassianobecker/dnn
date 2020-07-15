@@ -21,6 +21,7 @@ from dataset.synth.tract import Bundle, ControlPoint, Tractogram
 # general configurations
 base_path = '~/mitk/dnn/.dnn/datasets'
 dataset_name = 'synth5'
+DWI_PARAMS_FILE = 'param.ffp'
 
 # docker paths for Fiberfox
 docker_container_name = 'confident_nobel'
@@ -142,7 +143,7 @@ class FibercupRegressionDataset:
 
         # define all paths relative to docker
         dwi_base_path = base_path_on_docker
-        params_url = join(dwi_base_path, dataset_name, 'params', 'dwi_params.ffp')
+        params_url = join(dwi_base_path, dataset_name, 'params', DWI_PARAMS_FILE)
         tracts_url = join(dwi_base_path, dataset_name, 'tracts', f'{sample_id}', 'tracts.fib')
         target_url = join(dwi_base_path, dataset_name, 'dwi', f'{sample_id}', 'data')
 
@@ -230,16 +231,16 @@ class FibercupRegressionDataset:
         subprocess.run(fslconvert_command_str, shell=True, check=True)
 
     def _flipped_bvals_url(self):
-        return join(self.param_path, 'param_flipped.ffp.bvals')
+        return join(self.param_path, 'flipped_' + DWI_PARAMS_FILE + '.bvals')
 
     def _flipped_bvecs_url(self):
-        return join(self.param_path, 'param_flipped.ffp.bvecs')
+        return join(self.param_path, 'flipped_' + DWI_PARAMS_FILE + '.bvecs')
 
     def flip_evecs(self, flips=(1, -1, 1)):
 
         # flip eigenvectors for compatibility between Mitk Fiberfox and FSL dtifit
-        bvals_url = join(self.param_path, 'dwi_params.ffp.bvals')
-        bvecs_url = join(self.param_path, 'dwi_params.ffp.bvecs')
+        bvals_url = join(self.param_path, DWI_PARAMS_FILE + '.bvals')
+        bvecs_url = join(self.param_path, DWI_PARAMS_FILE + '.bvecs')
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         new_bvecs = bvecs @ np.diag(flips)
         return self.save_bvals_bvecs(bvals, new_bvecs)
@@ -252,8 +253,8 @@ class FibercupRegressionDataset:
 
         # bvals_url = self._flipped_bvals_url()
         # bvecs_url = self._flipped_bvecs_url()
-        bvals_url = join(self.param_path, 'dwi_params.ffp.bvals')
-        bvecs_url = join(self.param_path, 'dwi_params.ffp.bvecs')
+        bvals_url = join(self.param_path, DWI_PARAMS_FILE + '.bvals')
+        bvecs_url = join(self.param_path, DWI_PARAMS_FILE + '.bvecs')
 
         bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
         gtab = gradient_table(bvals, bvecs)
@@ -291,4 +292,4 @@ if __name__ == '__main__':
 
     number_of_samples = 2
     dataset = FibercupRegressionDataset()
-    dataset.generate_samples(number_of_samples, show_plot=False)
+    dataset.generate_samples(number_of_samples)

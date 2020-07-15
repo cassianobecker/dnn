@@ -196,5 +196,9 @@ class SynthProcessor:
         csd_fit = csd_model.fit(volumes)
 
         odf = csd_fit.shm_coeff
+
+        mask, mask_affine = load_nifti(join(self.make_path(sample_id, 'dwi'), 'data_mask.nii.gz'))
+        masked_odf = (mask[..., 0] * odf.transpose((2, 3, 1, 0))).transpose((3, 2, 0, 1))
+
         odf_url = join(self.make_path(sample_id, 'odf'), 'odf.nii.gz')
-        save_nifti(odf_url, odf, volumes_affine)
+        save_nifti(odf_url, masked_odf, volumes_affine)
