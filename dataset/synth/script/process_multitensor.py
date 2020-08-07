@@ -1,6 +1,4 @@
-from __future__ import print_function
-
-from dataset.synth.dwi import SynthProcessor
+from dataset.synth.multitensor import SynthProcessor
 from fwk.config import Config
 
 from util.iterators import chunk_iterator
