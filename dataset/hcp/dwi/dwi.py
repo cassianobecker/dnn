@@ -1,16 +1,22 @@
 import os
 import subprocess
 import shutil
-import numpy as np
 
 from util.logging import get_logger, set_logger
 from fwk.config import Config
-from util.path import absolute_path, is_project_in_cbica
+from util.path import absolute_path
+from dataset.hcp.dwi.mask import get_mask
 
 from dataset.hcp.hcp import HcpDiffusionDatabase
-from dataset.hcp.dwi.registration import find_prealign_affine, find_warp, apply_warp_on_volumes
+from dataset.hcp.dwi.registration import find_prealign_affine, find_warp, apply_warp_on_volumes, find_rigid_affine
 
 from dipy.io.image import load_nifti, save_nifti
+from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
+from dipy.reconst.csdeconv import auto_response
+from dipy.core.gradients import gradient_table
+from dipy.io import read_bvals_bvecs
+import nibabel as nib
+from dipy.align.reslice import reslice
 
 
 class HcpDwiProcessor:
@@ -32,14 +38,154 @@ class HcpDwiProcessor:
 
         self.template_folder = absolute_path(Config.config['TEMPLATE']['folder'])
         self.template_file = Config.get_option('TEMPLATE', 'template', 'FMRIB58_FA_125mm.nii.gz')
-        self.mask_file = Config.get_option('TEMPLATE', 'mask', 'FMRIB58_FA-mask_125mm.nii.gz')
 
-    def register(self, subject):
+        self.resolution = int(Config.get_option('TEMPLATE', 'resolution', '125'))
+
+        # instead of 'FMRIB58_FA-mask_125mm.nii.gz'
+        self.mask_file = Config.get_option('TEMPLATE', 'mask', 'FMRIB58_FA-mask_125mm_edit.nii.gz')
+
+    def dti_fit_moving(self, subject):
+
+        dti_params = {
+            'data': self._url_mirror_dwi(subject, 'data.nii.gz'),
+            'mask': self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+            'bvals': self._url_mirror_dwi(subject, 'bvals'),
+            'bvecs': self._url_mirror_dwi(subject, 'bvecs'),
+            'output': self._url_moving_dwi(subject, 'dti')
+        }
+
+        self._perform_dti_fit(dti_params, save_tensor=True)
+
+    def process_subject(self, subject, delete_folders=False):
+
+        self.logger.info(f'processing subject {subject}')
+
+        self.logger.info(f'registering subject {subject}')
+        # self.register_nonlinear(subject)
+        # self.register_rigid(subject)
+
+        # self.logger.info(f'fitting dti for subject {subject}')
+        # self.fit_dti(subject)
+
+        # self.logger.info(f'fitting odf for subject {subject}')
+        # self.fit_odf(subject)
+
+        self.fit_odf_mrtrix(subject)
+
+        # if delete_folders is True:
+        #     self.logger.info(f'cleaning up for subject {subject}')
+        #     self.clean(subject)
+
+    def fit_odf_mrtrix(self, subject):
+
+        cwd = self._path_moving_dwi(subject)
+
+        if self._spatial_resampling():
+            data_url, mask_url = self._resample_images(subject)
+        else:
+            data_url = self._url_mirror_dwi(subject, 'data.nii.gz')
+            mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
+
+        t1w_url = self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')
+
+        # '5ttgen fsl T1w_acpc_dc_restore_brain.nii.gz 5TT.mif -premasked'
+
+        fiveTT_url = '5TT.mif'
+
+        str_cmd = f'5ttgen fsl  {t1w_url } {fiveTT_url} -premasked'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 'mrconvert data.nii.gz DWI.mif -fslgrad bvecs bvals -datatype float32 -strides 0,0,0,1'
+
+        bvecs_url = self._url_mirror_dwi(subject, 'bvecs')
+        bvals_url = self._url_mirror_dwi(subject, 'bvals')
+
+        DWI_url = 'DWI.mif'
+
+        # if latest MRTRIX VERSION (see strides option with s)
+        # str_cmd = f'mrconvert ' \
+        #           f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -strides 0,0,0,1'
+
+        # if cbica MRTRIX VERSION (see stride option without s)
+        str_cmd = f'mrconvert ' \
+                  f'{data_url} {DWI_url} -fslgrad {bvecs_url} {bvals_url} -datatype float32 -stride 0,0,0,1'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 'dwiextract DWI.mif - -bzero | mrmath - mean meanb0.mif -axis 3'
+
+        str_cmd = f'dwiextract {DWI_url} - -bzero | mrmath - mean meanb0.mif -axis 3'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 'dwi2response msmt_5tt DWI.mif 5TT.mif RF_WM.txt RF_GM.txt RF_CSF.txt -voxels RF_voxels.mif'
+        RF_WM_url = 'RF_WM.txt'
+        RF_GM_url = 'RF_GM.txt'
+        RF_CSF_url = 'RF_CSF.txt'
+        RF_voxels_url = 'RF_voxels.mif'
+
+        str_cmd = f'dwi2response msmt_5tt ' \
+                  f'{DWI_url} {fiveTT_url} {RF_WM_url} {RF_GM_url} {RF_CSF_url} -voxels {RF_voxels_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # 'dwi2fod msmt_csd DWI.mif RF_WM.txt WM_FODs.mif RF_GM.txt GM.mif RF_CSF.txt CSF.mif
+        # -mask nodif_brain_mask.nii.gz'
+
+        WM_FOD_url = 'WM_FODs.mif'
+        GM_url = 'GM.mif'
+        CSF_url = 'CSF.mif'
+
+        str_cmd = f'dwi2fod msmt_csd ' \
+                  f'{DWI_url} {RF_WM_url} {WM_FOD_url} {RF_GM_url} {GM_url} {RF_CSF_url} {CSF_url} -mask {mask_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # mrconvert WM_FODs.mif WM_FODs.nii.gz
+        WM_FOD_nifti_url = 'WM_FODs.nii.gz'
+
+        str_cmd = f'mrconvert {WM_FOD_url} {WM_FOD_nifti_url}'
+
+        subprocess.run(str_cmd, shell=True, check=True, cwd=cwd)
+
+        # delete temporary files
+        urls_to_delete = [DWI_url, WM_FOD_url, fiveTT_url, RF_voxels_url, CSF_url, GM_url]
+        self._delete_urls(urls_to_delete, subject)
+
+        if self._spatial_resampling():
+            urls_to_delete = [data_url, mask_url]
+            self._delete_urls(urls_to_delete, subject)
+
+    def _delete_urls(self, urls_to_delete, subject):
+        for rel_url in urls_to_delete:
+            url = os.path.join(self._path_moving_dwi(subject), rel_url)
+            if os.path.isfile(url):
+                os.remove(url)
+
+    def register_rigid(self, subject):
+
+        # static_url = self._template_fa_url()
+        # static, static_affine = load_nifti(static_url)
+
+        moving_url = self._get_moving_fa(subject)
+
+        # moving, moving_affine = load_nifti(moving_url)
+        #
+        # rigid_affine = find_rigid_affine(static, static_affine,  moving, moving_affine)
+        #
+        # rigid_affine_url = self._url_moving_dwi(subject, 'rigid_affine.nii.gz')
+        # save_nifti(rigid_affine_url, rigid_affine.affine, rigid_affine.affine)
+
+        # find linear registration transformation
+
+    def register_nonlinear(self, subject):
 
         static_url = self._template_fa_url()
         static, static_affine = load_nifti(static_url)
 
         moving_url = self._get_moving_fa(subject)
+
         moving, moving_affine = load_nifti(moving_url)
 
         # find linear registration transformation
@@ -61,10 +207,18 @@ class HcpDwiProcessor:
 
         self._save_registered_files(subject, warped_data, warped_fa, template_mask, template_affine)
 
-    def _save_registered_files(self, subject, warped_data, warped_fa, warped_mask, warped_affine):
+    def _save_registered_files(self, subject, warped_data, warped_fa, warped_mask, warped_affine, rigid_affine=None):
 
-        warped_data_url = self._url_registered_dwi(subject, 'warped_fa.nii.gz')
-        save_nifti(warped_data_url, warped_fa, warped_affine)
+        if rigid_affine is not None:
+            rigid_affine_url = self._url_registered_dwi(subject, 'rigid_affine.nii.gz')
+            save_nifti(rigid_affine_url, rigid_affine.affine, rigid_affine.affine)
+
+        warped_fa_url = self._url_registered_dwi(subject, 'warped_fa.nii.gz')
+        save_nifti(warped_fa_url, warped_fa, warped_affine)
+
+        warped_masked_fa = warped_fa * warped_mask
+        warped_masked_fa_url = self._url_registered_dwi(subject, 'warped_masked_fa.nii.gz')
+        save_nifti(warped_masked_fa_url, warped_masked_fa, warped_affine)
 
         warped_mask_url = self._url_registered_dwi(subject, 'nodif_brain_mask.nii.gz')
         save_nifti(warped_mask_url, warped_mask, warped_affine)
@@ -80,50 +234,91 @@ class HcpDwiProcessor:
         warped_bvecs_url = self._url_registered_dwi(subject, 'bvecs')
         shutil.copyfile(bvecs_url, warped_bvecs_url)
 
-    def _template_fa_url(self):
-        return os.path.join(self.template_folder, self.template_file)
+    def _resample_images(self, subject):
 
-    def _template_mask_url(self):
-        return os.path.join(self.template_folder, self.mask_file)
+        # old_urls = [self._url_mirror_dwi(subject, 'data.nii.gz'),
+        #             self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+        #             self._url_mirror_t1w(subject, 'T1w_acpc_dc_restore_brain.nii.gz')]
+        #
+        # new_urls = [self._url_moving_dwi(subject, f'data.nii.gz'),
+        #             self._url_moving_dwi(subject, f'nodif_brain_mask.nii.gz'),
+        #             self._url_moving_dwi(subject, f'T1w_acpc_dc_restore_brain.nii.gz')]
 
-    def _url_mirror_dwi(self, subject, file_name):
-        return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', 'Diffusion', file_name)
+        old_urls = [self._url_mirror_dwi(subject, 'data.nii.gz'),
+                    self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')]
 
-    def _path_moving_dwi(self, subject):
-        path = os.path.join(self.processing_folder, subject, 'moving')
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        return path
+        new_urls = [self._url_moving_dwi(subject, f'data.nii.gz'),
+                    self._url_moving_dwi(subject, f'nodif_brain_mask.nii.gz')]
 
-    def _url_moving_dwi(self, subject, file_name):
-        return os.path.join(self._path_moving_dwi(subject), file_name)
+        for old_url, new_url in zip(old_urls, new_urls):
+            self._resample_image(old_url, new_url, self.resolution/100.)
 
-    def _path_registered_dwi(self, subject):
-        path = os.path.join(self.processing_folder, subject, 'registered')
-        if not os.path.isdir(path):
-            os.makedirs(path)
-        return path
+        return new_urls
 
-    def _url_registered_dwi(self, subject, file_name):
-        return os.path.join(self._path_registered_dwi(subject), file_name)
+    def _resample_image(self, old_url, new_url, new_zoom):
+
+        # from https://dipy.org/documentation/1.0.0./examples_built/reslice_datasets/
+
+        img = nib.load(old_url)
+        data = img.get_data()
+        zooms = img.header.get_zooms()[:3]
+        affine = img.affine
+
+        new_zooms = tuple([new_zoom] * 3)
+        new_data, new_affine = reslice(data, affine, zooms, new_zooms)
+
+        save_nifti(new_url, new_data, new_affine)
+
+    def _spatial_resampling(self):
+        return not self.resolution == 125
 
     def _get_moving_fa(self, subject):
 
+        if self._spatial_resampling():
+            data_url, mask_url = self._resample_images(subject)
+        else:
+            data_url = self._url_mirror_dwi(subject, 'data.nii.gz')
+            mask_url = self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz')
+
         dti_params = {
-            'data': self._url_mirror_dwi(subject, 'data.nii.gz'),
-            'mask': self._url_mirror_dwi(subject, 'nodif_brain_mask.nii.gz'),
+            'data': data_url,
+            'mask': mask_url,
             'bvals': self._url_mirror_dwi(subject, 'bvals'),
             'bvecs': self._url_mirror_dwi(subject, 'bvecs'),
             'output': self._url_moving_dwi(subject, 'dti')
         }
 
-        self._perform_dti_fit(dti_params, save_tensor=False)
+        self._perform_dti_fit(dti_params, save_tensor=True)
 
-        moving_FA_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
+        moving_tensor_url = self._url_moving_dwi(subject, 'dti_tensor.*')
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_tensor_url}'
+        subprocess.run(fslconvert_command_str, shell=True, check=True)
 
-        return moving_FA_url
+        moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.*')
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_fa_url}'
+        subprocess.run(fslconvert_command_str, shell=True, check=True)
+        converted_moving_fa_url = self._url_moving_dwi(subject, 'dti_FA.nii.gz')
 
-    def _perform_dti_fit(self, dti_params, save_tensor=False):
+        # moving_md_url = self._url_moving_dwi(subject, 'dti_MD.*')
+        # fslconvert_command_str = f'fslchfiletype NIFTI_GZ {moving_md_url}'
+        # subprocess.run(fslconvert_command_str, shell=True, check=True)
+        # converted_moving_md_url = self._url_moving_dwi(subject, 'dti_MD.nii.gz')
+        #
+        # fa, affine_fa = load_nifti(converted_moving_fa_url)
+        # md, _ = load_nifti(converted_moving_md_url)
+        #
+        # wm_mask = get_mask(fa, md)
+        # wm_mask_url = self._url_moving_dwi(subject, 'dti_WM.nii.gz')
+        # affine_wm = affine_fa
+        # save_nifti(wm_mask_url, wm_mask, affine_wm)
+
+        if self._spatial_resampling() and os.path.isfile(data_url):
+            os.remove(data_url)
+
+        return converted_moving_fa_url
+
+    @staticmethod
+    def _perform_dti_fit(dti_params, save_tensor=False):
 
         dti_fit_command_str = f"dtifit " \
                               f"-k {dti_params['data']} " \
@@ -144,94 +339,86 @@ class HcpDwiProcessor:
             'mask': self._url_registered_dwi(subject, 'nodif_brain_mask.nii.gz'),
             'bvals': self._url_registered_dwi(subject, 'bvals'),
             'bvecs': self._url_registered_dwi(subject, 'bvecs'),
-            'output': self._url_registered_dwi(subject, 'dti')
+            'output': self._url_fitted_dwi(subject, 'dti')
         }
 
-        self._perform_dti_fit(dti_params, save_tensor=False)
+        self._perform_dti_fit(dti_params, save_tensor=True)
+
+        registered_tensor_url = self._url_fitted_dwi(subject, 'dti_tensor.*')
+        fslconvert_command_str = f'fslchfiletype NIFTI_GZ {registered_tensor_url}'
+        subprocess.run(fslconvert_command_str, shell=True, check=True)
 
     def fit_odf(self, subject):
-        pass
 
-    def _process_subject(self, subject, delete_folders=False):
-        self.register(subject)
-        self.fit_dti(subject)
-        self.fit_odf(subject)
+        bvals_url = self._url_registered_dwi(subject, 'bvals')
+        bvecs_url = self._url_registered_dwi(subject, 'bvecs')
+        volumes_url = self._url_registered_dwi(subject, 'data.nii.gz')
 
-    def process_subject(self, subject, delete_folders=False):
+        bvals, bvecs = read_bvals_bvecs(bvals_url, bvecs_url)
+        gtab = gradient_table(bvals, bvecs)
 
-        self.logger.info('processing subject {}'.format(subject))
+        volumes, volumes_affine = load_nifti(volumes_url)
 
-        if not os.path.exists(self._processed_tensor_url(subject)):
-            self.database.get_diffusion(subject)
+        response, ratio = auto_response(gtab,  volumes, roi_radius=10, fa_thr=0.7)
 
-        self._process_subject(subject, delete_folders)
+        csd_model = ConstrainedSphericalDeconvModel(gtab, response)
 
-        # if delete_folders is True:
-        #     self.database.delete_diffusion_folder(subject)
-        #
-        #     self._delete_fsl_folder(subject)
-        #     self._delete_conversion_folder(subject)
-        #     self._delete_reg_folder(subject)
-        #     self._delete_ants_folder(subject)
+        csd_fit = csd_model.fit(volumes)
 
-    # @staticmethod
-    # def _dti_files():
-    #     return {'fsl_FA.nii.gz', 'fsl_L1.nii.gz', 'fsl_L2.nii.gz', 'fsl_L3.nii.gz', 'fsl_MD.nii.gz',
-    #             'fsl_MO.nii.gz',  'fsl_S0.nii.gz',  'fsl_V1.nii.gz',  'fsl_V2.nii.gz',  'fsl_V3.nii.gz',
-    #             'fsl_tensor.nii.gz'}
-    #
-    # def _fsl_folder(self, subject):
-    #     return os.path.join(self.processing_folder, 'HCP_1200_processed', subject, 'fsl')
+        odf = csd_fit.shm_coeff
 
-    def _processed_tensor_folder(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
+        mask_url = self._url_registered_dwi(subject, 'nodif_brain_mask.nii.gz')
 
-    def _processed_tensor_url(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'dti_tensor_' + subject + '.npz')
+        mask, affine = load_nifti(mask_url)
 
-    # def _is_dti_processed(self, subject):
-    #     ants_dir = self._ants_folder(subject)
-    #     dir_contents = os.listdir(ants_dir)
-    #     return dir_contents == self.ants_dti_files
-    #
-    # def _is_tensor_saved(self, subject):
-    #     exists = False
-    #     if os.path.isdir(self._processed_tensor_folder(subject)):
-    #         exists = os.path.isfile(self._processed_tensor_url(subject))
-    #     return exists
-    #
-    # def _delete_fsl_folder(self, subject):
-    #     processed_fsl_dir = self._fsl_folder(subject)
-    #     if os.path.exists(processed_fsl_dir):
-    #         shutil.rmtree(processed_fsl_dir)
+        # apply mask by transposing tensor dimensions
+        odf_masked = (odf.transpose((3, 0, 1, 2)) * mask).transpose((1, 2, 3, 0))
 
-    def save_dti_tensor_image(self, subject):
-        if not os.path.isdir(self._processed_tensor_folder(subject)):
-            os.makedirs(self._processed_tensor_folder(subject))
-        dti_tensor = self.build_dti_tensor_image(subject)
-        np.savez_compressed(self._processed_tensor_url(subject), dwi_tensor=dti_tensor)
+        odf_url = self._url_fitted_dwi(subject, 'odf.nii.gz')
 
-    # def fit_dti(self, subject):
-    #
-    #     diffusion_dir = os.path.join(self.database.mirror_folder, self.database.diffusion_dir(subject))
-    #     processed_fsl_dir = self._fsl_folder(subject)
-    #
-    #     if os.path.isdir(processed_fsl_dir):
-    #         dti_file = set(os.listdir(processed_fsl_dir))
-    #     else:
-    #         dti_file = {}
-    #
-    #     if dti_file == self.dti_files:
-    #         self.logger.info('processed dti files found for subject {}'.format(subject))
-    #
-    #     else:
-    #         self.logger.info('processing dti files for subject {}'.format(subject))
-    #         if not os.path.isdir(processed_fsl_dir):
-    #             os.makedirs(processed_fsl_dir)
-    #
-    #         dti_fit_command_str = \
-    #             'dtifit -k {0}/data.nii.gz -o {1}/fsl -m {0}/nodif_brain_mask.nii.gz -r {0}/bvecs -b {0}/bvals ' \
-    #             '--save_tensor'.format(diffusion_dir, processed_fsl_dir)
-    #
-    #         subprocess.run(dti_fit_command_str, shell=True, check=True)
+        save_nifti(odf_url, odf_masked, volumes_affine)
 
+    def clean(self, subject):
+        data_url = self._url_registered_dwi(subject, 'data.nii.gz')
+        if os.path.isfile(data_url):
+            os.remove(data_url)
+
+    def _template_fa_url(self):
+        return os.path.join(self.template_folder, self.template_file)
+
+    def _template_mask_url(self):
+        return os.path.join(self.template_folder, self.mask_file)
+
+    def _url_mirror_dwi(self, subject, file_name):
+        return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', 'Diffusion', file_name)
+
+    def _url_mirror_t1w(self, subject, file_name):
+        return os.path.join(self.database.get_mirror_folder(), 'HCP_1200', subject, 'T1w', file_name)
+
+    def _path_moving_dwi(self, subject):
+
+        path = os.path.join(self.processing_folder, subject, f'moving{self.resolution}')
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
+    def _url_moving_dwi(self, subject, file_name):
+        return os.path.join(self._path_moving_dwi(subject), file_name)
+
+    def _path_registered_dwi(self, subject):
+        path = os.path.join(self.processing_folder, subject, 'registered')
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
+    def _url_registered_dwi(self, subject, file_name):
+        return os.path.join(self._path_registered_dwi(subject), file_name)
+
+    def _path_fitted_dwi(self, subject):
+        path = os.path.join(self.processing_folder, subject, 'fitted')
+        if not os.path.isdir(path):
+            os.makedirs(path)
+        return path
+
+    def _url_fitted_dwi(self, subject, file_name):
+        return os.path.join(self._path_fitted_dwi(subject), file_name)

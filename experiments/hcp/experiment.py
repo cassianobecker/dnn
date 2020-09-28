@@ -13,6 +13,7 @@ from dataset.hcp.subjects import Subjects
 from util.lang import class_for_name
 from util.encode import one_hot_to_int
 
+
 class BatchTrain:
 
     def __init__(self):
@@ -24,6 +25,7 @@ class BatchTrain:
         self.device = None
         self.data_loaders = dict()
         self.accumulation_steps = None
+        self.regression = None
 
     def execute(self):
 
@@ -42,6 +44,8 @@ class BatchTrain:
 
             self.train_batch(epoch)
             self.test_batch(epoch)
+
+            self.scheduler.step()
 
             MetricsHandler.dispatch_event(locals(), 'after_epoch')
 
@@ -63,13 +67,18 @@ class BatchTrain:
         max_img_channels = int(Config.get_option('ALGORITHM', 'max_img_channels', 1000))
         cholesky_weights = to_bool(Config.get_option('ARCHITECTURE', 'cholesky_weights', 'False'))
 
+        perturb = to_bool(Config.get_option('DATABASE', 'perturb', 'False'))
+        self.regression = to_bool(Config.get_option('COVARIATES', 'regression', 'False'))
+
         train_subjects, test_subjects = Subjects.create_list_from_config()
 
         train_set = HcpDataset(
             self.device,
             subjects=train_subjects,
             half_precision=half_precision,
-            max_img_channels=max_img_channels
+            max_img_channels=max_img_channels,
+            perturb=perturb,
+            regression=self.regression
         )
 
         self.data_loaders['train'] = HcpDataLoader(
@@ -82,7 +91,9 @@ class BatchTrain:
             self.device,
             subjects=test_subjects,
             half_precision=half_precision,
-            max_img_channels=max_img_channels
+            max_img_channels=max_img_channels,
+            perturb=False,
+            regression=self.regression
         )
 
         self.data_loaders['test'] = HcpDataLoader(
@@ -113,27 +124,32 @@ class BatchTrain:
             gamma=float(Config.config['ALGORITHM']['gamma'])
         )
 
-        if Config.config.has_option('ALGORITHM', 'accumulation_steps'):
-            self.accumulation_steps = int(Config.config['ALGORITHM']['test_batch_size'])
-        else:
-            self.accumulation_steps = 1
+        self.accumulation_steps = int(Config.get_option('ALGORITHM', 'accumulation_steps', 1))
 
     def train_batch(self, epoch):
 
         self.model.train()
 
-        for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
+        self.optimizer.zero_grad()
+
+        for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['train']):
 
             MetricsHandler.dispatch_event(locals(), 'before_train_batch')
 
-            dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
-                                   targets.to(self.device).type(torch.long)
+            # dwi_tensors, targets = dwi_tensors.to(self.device).type(
+            #     torch.float32), targets.to(self.device).type(torch.long)
 
-            self.optimizer.zero_grad()
+            dwi_tensors, targets = dwi_tensors.to(self.device).type(
+                torch.float32), targets.to(self.device).type(torch.float32)
 
-            outputs = self.model(dti_tensors)
+            # self.optimizer.zero_grad()
+            outputs = self.model(dwi_tensors)
 
-            loss = F.nll_loss(outputs, one_hot_to_int(targets))
+            if self.regression is True:
+                loss = F.mse_loss(outputs, targets)
+            else:
+                loss = F.nll_loss(outputs, one_hot_to_int(targets))
+
             loss.backward()
             # self.optimizer.step()
 
@@ -148,12 +164,12 @@ class BatchTrain:
         self.model.eval()
 
         with torch.no_grad():
-            for batch_idx, (dti_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
+            for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dti_tensors, targets = dti_tensors.to(self.device).type(torch.float32), \
-                                       targets.to(self.device).type(torch.long)
+                dwi_tensors, targets = dwi_tensors.to(self.device).type(
+                    torch.float32), targets.to(self.device).type(torch.long)
 
-                outputs = self.model(dti_tensors)
+                outputs = self.model(dwi_tensors)
 
                 MetricsHandler.dispatch_event(locals(), 'after_test_batch')

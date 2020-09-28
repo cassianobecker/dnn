@@ -1,11 +1,15 @@
 import os
 import numpy as np
+import numpy.random as npr
+
 from dataset.hcp.covariates import Covariates
 from util.logging import get_logger, set_logger
 from fwk.config import Config
 from util.path import absolute_path
 import nibabel as nb
 from util.arrays import slice_from_list_of_pairs
+from dipy.io.image import load_nifti
+from dataset.hcp.dwi.transform import rotate_tensor
 
 
 class HcpReader:
@@ -27,6 +31,12 @@ class HcpReader:
         self.field = Config.config['COVARIATES']['field']
         self.covariates = Covariates()
 
+        self.model = Config.get_option('DATABASE', 'model', None)
+        self.registration = Config.get_option('DATABASE', 'registration', None)
+
+        self.file_names = {
+            'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz', 'odf_mrtrix': 'WM_FODs.nii.gz'}
+
         if Config.config.has_option('TEMPLATE', 'mask'):
             mask_folder = absolute_path(Config.config['TEMPLATE']['folder'])
             self.mask_url = os.path.join(mask_folder, Config.config['TEMPLATE']['mask'])
@@ -42,11 +52,49 @@ class HcpReader:
         self.logger.info('loaded ' + str(len(subjects)) + ' subjects from: ' + list_url)
         return subjects
 
-    def _processed_tensor_folder(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
+    # def _processed_tensor_folder(self, subject):
+    #     return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject)
+    #
+    # def _processed_tensor_url(self, subject):
+    #     return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'tensor_' + subject + '.npz')
+    #
+    # def load_dwi_tensor_image(self, subject,
+    #                           region=None,
+    #                           vectorize=True,
+    #                           normalize=False,
+    #                           mask=False,
+    #                           scale=1.,
+    #                           max_img_channels=None,
+    #                           ):
+    #
+    #     try:
+    #         dwi_tensor = np.load(self._processed_tensor_url(subject))['dwi_tensor']
+    #     except FileNotFoundError:
+    #         raise SkipSubjectException(f'File for subject {subject} not found')
+    #
+    #     if region is not None:
+    #         slices = slice_from_list_of_pairs(region, null_offset=2)
+    #         dwi_tensor = dwi_tensor[slices]
+    #
+    #     if self.mask_url is not None:
+    #         dwi_tensor = self.apply_mask(dwi_tensor)
+    #
+    #     if vectorize is True and len(dwi_tensor.shape) > 4:
+    #         dwi_tensor = self.vectorize_channels(dwi_tensor)
+    #
+    #     if normalize is True:
+    #         dwi_tensor = self.normalize_channels(dwi_tensor)
+    #
+    #     if scale is not None:
+    #         dwi_tensor = dwi_tensor * scale
+    #
+    #     if max_img_channels is not None:
+    #         dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
+    #
+    #     return dwi_tensor
 
     def _processed_tensor_url(self, subject):
-        return os.path.join(self.processing_folder, 'HCP_1200_tensor', subject, 'tensor_' + subject + '.npz')
+        return os.path.join(self.processing_folder, subject, self.registration, self.file_names[self.model])
 
     def load_dwi_tensor_image(self, subject,
                               region=None,
@@ -55,10 +103,16 @@ class HcpReader:
                               mask=False,
                               scale=1.,
                               max_img_channels=None,
+                              perturb=False
                               ):
 
         try:
-            dwi_tensor = np.load(self._processed_tensor_url(subject))['dwi_tensor']
+            dwi_tensor, affine = load_nifti(self._processed_tensor_url(subject))
+
+            if len(dwi_tensor.shape) == 3:
+                dwi_tensor = np.expand_dims(dwi_tensor, axis=3)
+
+            dwi_tensor = dwi_tensor.transpose((3, 0, 1, 2))
         except FileNotFoundError:
             raise SkipSubjectException(f'File for subject {subject} not found')
 
@@ -81,10 +135,27 @@ class HcpReader:
         if max_img_channels is not None:
             dwi_tensor = dwi_tensor[:max_img_channels, :, :, :]
 
+        if perturb is True:
+            dwi_tensor = self.transform_dwi_tensor(dwi_tensor)
+
         return dwi_tensor
 
-    def load_covariate(self, subject):
-        return self.covariates.value(self.field, subject)
+    def transform_dwi_tensor(self, dwi_tensor):
+
+        max_ang = np.pi / 80
+        max_shift = 3
+
+        angles = max_ang * (2 * npr.random(3) - 1)
+        shift = max_shift * (2 * npr.random(3) - 1)
+
+        inside = True if self.model == 'dti' else False
+
+        transformed_dwi_tensor = rotate_tensor(dwi_tensor, angles, shift=shift, inside=inside)
+
+        return transformed_dwi_tensor
+
+    def load_covariate(self, subject, regression=False):
+        return self.covariates.value(self.field, subject, regression)
 
     def apply_mask(self, tensor):
 

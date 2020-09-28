@@ -42,10 +42,23 @@ class Subjects:
     @staticmethod
     def list_from(path):
         abs_path = os.path.expanduser(os.path.join(path, 'HCP_1200_tensor'))
+        if not os.path.isdir(abs_path):
+            abs_path = path
+
         files = sorted(os.listdir(abs_path))
         subject_pattern = '[0-9]{6}'
         subjects = [file for file in files if bool(re.match(subject_pattern, file))]
-        return subjects
+
+        model = Config.get_option('DATABASE', 'model', None)
+        file_names = {'dti': 'dti_tensor.nii.gz', 'odf': 'odf.nii.gz', 'fa': 'dti_FA.nii.gz', 'odf_mrtrix': 'WM_FODs.nii.gz'}
+
+        def url_for_subject(subject):
+            registration = Config.get_option('DATABASE', 'registration', None)
+            return os.path.join(abs_path, subject, registration, file_names[model])
+
+        fitted_subjects = [subject for subject in subjects if os.path.isfile(url_for_subject(subject))]
+
+        return fitted_subjects
 
     @staticmethod
     def _partition(subjects, idxs):

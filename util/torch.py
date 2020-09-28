@@ -7,7 +7,7 @@ import numpy as np
 def seed_everything(seed=1234):
     """
     Sets a random seed for OS, NumPy, PyTorch and CUDA.
-    :param seed: random seed to apply
+    :dwi_params seed: random seed to apply
     :return: None
     """
     random.seed(seed)

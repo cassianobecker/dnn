@@ -24,4 +24,8 @@ dependencies:
     - opencv-python
     - scikit-image
     - dipy
+    - vtk=8.2.0
+    - fury
+    - dipy
+
 

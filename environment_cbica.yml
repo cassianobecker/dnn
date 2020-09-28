@@ -23,5 +23,6 @@ dependencies:
     - sphinx_rtd_theme
     - opencv-python
     - scikit-image
+    - vtk=8.2.0
+    - fury
     - dipy
-
