@@ -6,10 +6,12 @@ from dataset.synth.covariates import Covariates
 from util.logging import get_logger, set_logger
 from fwk.config import Config
 from util.path import absolute_path
+from util.string import list_from
 import nibabel as nb
 from util.arrays import slice_from_list_of_pairs
 from dipy.io.image import load_nifti
 from dataset.hcp.dwi.transform import rotate_tensor
+from collections import OrderedDict
 
 
 class SynthReader:
@@ -28,7 +30,8 @@ class SynthReader:
         set_logger('HcpReader', Config.config['LOGGING']['dataloader_level'], log_furl)
         self.logger = get_logger('HcpReader')
 
-        self.field = Config.config['COVARIATES']['field']
+        # self.field = Config.config['COVARIATES']['field']
+        self.fields = list_from(Config.config['COVARIATES']['field'])
         self.covariates = Covariates()
 
         self.model = Config.get_option('DATABASE', 'model', None)
@@ -114,7 +117,15 @@ class SynthReader:
         return transformed_dwi_tensor
 
     def load_covariate(self, subject, regression=False):
-        return self.covariates.value(self.field, subject, regression)
+        return self.covariates.value(self.fields, subject, regression)
+
+    def load_covariate_dict(self, subject, regression=False):
+        targets = OrderedDict()
+        for field in self.fields:
+            value = self.covariates.value(field, subject, regression)
+            targets[field] = value
+
+        return targets
 
     def apply_mask(self, tensor):
 

@@ -231,3 +231,8 @@ def create_fibercup_classification(radius=64, depth=5, margin=0.3, mult=500):
     tractogram.add(edge, Bundle(node0, node1, cps, num_streams))
 
     return tractogram, parcels
+
+
+if __name__ == '__main__':
+    tractogram, parcels = create_fibercup(mult=1)
+    pass

@@ -105,11 +105,16 @@ class BatchTrain:
         img_dims = train_set.tensor_size()
 
         num_classes = train_set.number_of_classes() if not self.regression else 1
+        num_outputs = train_set.number_of_outputs()
 
         arch_class_name = Config.config['ARCHITECTURE']['arch_class_name']
         model_class = class_for_name(arch_class_name)
 
-        self.model = model_class(img_dims, num_classes, cholesky_weights=cholesky_weights)
+        self.model = model_class(img_dims,
+                                 number_of_classes=num_classes,
+                                 number_of_outputs=num_outputs,
+                                 cholesky_weights=cholesky_weights)
+
         self.model.to(self.device)
 
         self.epochs = int(Config.config['ALGORITHM']['epochs'])
@@ -140,8 +145,15 @@ class BatchTrain:
             # dwi_tensors, targets = dwi_tensors.to(self.device).type(
             #     torch.float32), targets.to(self.device).type(torch.long)
 
-            dwi_tensors, targets = dwi_tensors.to(self.device).type(
-                torch.float32), targets.to(self.device).type(torch.float32)
+            # dwi_tensors, targets = dwi_tensors.to(self.device).type(
+            #     torch.float32), targets.to(self.device).type(torch.float32)
+
+            dwi_tensors = dwi_tensors.to(self.device).type(torch.float32)
+
+            for key, value in targets.items():
+                targets[key] = value.to(self.device).type(torch.float32)
+
+            targets = torch.stack(list(targets.values()))
 
             # self.optimizer.zero_grad()
             outputs = self.model(dwi_tensors)
@@ -153,6 +165,8 @@ class BatchTrain:
 
             loss.backward()
             # self.optimizer.step()
+
+            print(f'train loss {loss}')
 
             if (batch_idx + 1) % self.accumulation_steps == 0:
                 self.optimizer.step()
@@ -168,9 +182,18 @@ class BatchTrain:
             for batch_idx, (dwi_tensors, targets, subjects) in enumerate(self.data_loaders['test']):
                 MetricsHandler.dispatch_event(locals(), 'before_test_batch')
 
-                dwi_tensors, targets = dwi_tensors.to(self.device).type(
-                    torch.float32), targets.to(self.device).type(torch.long)
+                # dwi_tensors, targets = dwi_tensors.to(self.device).type(
+                #     torch.float32), targets.to(self.device).type(torch.float32)
+
+                dwi_tensors = dwi_tensors.to(self.device).type(torch.float32)
+
+                for key, value in targets.items():
+                    targets[key] = value.to(self.device).type(torch.float32)
+
+                targets = torch.stack(list(targets.values()))
+
 
                 outputs = self.model(dwi_tensors)
+                # outputs = targets
 
                 MetricsHandler.dispatch_event(locals(), 'after_test_batch')

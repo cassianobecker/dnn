@@ -8,7 +8,7 @@ from dipy.io import read_bvals_bvecs
 from dipy.io.image import load_nifti, save_nifti
 from dipy.reconst.csdeconv import ConstrainedSphericalDeconvModel
 
-from dataset.synth.phantom import PhantomRegressionDataset
+from util.lang import class_for_name
 from fwk.config import Config
 
 
@@ -28,14 +28,17 @@ class SynthProcessor:
         self.fit_odf(sample_id)
 
     def simulate_files(self, sample_id):
-        dataset = PhantomRegressionDataset()
-        dwi, label = dataset.generate_dwi_and_covariate()
+
+        phantom_class_name = Config.get_option('DWI', 'phantom_class_name')
+        PhantomClass = class_for_name(phantom_class_name)
+        dataset = PhantomClass()
+        dwi, labels = dataset.generate_dwi_and_covariate()
 
         dwi_path = self.make_path(sample_id, 'dwi')
         dataset.save_dwi(dwi_path, dwi)
 
         label_path = self.make_path(sample_id, 'tracts')
-        dataset.save_label(label_path, label)
+        dataset.save_label(label_path, labels)
 
     def fit_odf(self, sample_id):
 

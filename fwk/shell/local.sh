@@ -1,7 +1,7 @@
 #!/bin/bash
 
-source activate dnn-cluster
+source activate dnn
 
-module load mrtrix
+#module load mrtrix
 
 python -c "from fwk.experiment import Experiment; Experiment.run('${1}')"

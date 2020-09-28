@@ -118,8 +118,8 @@ class RegressionAccuracy(Metric):
         if regime not in self.stats.keys():
             self.stats[regime] = RegressionStatistics()
 
-        self.stats[regime].predicted.extend(predicted.tolist())
-        self.stats[regime].targets.extend(targets.tolist())
+        self.stats[regime].predicted.extend(predicted.T.tolist())
+        self.stats[regime].targets.extend(targets.T.tolist())
 
     def on_before_epoch(self, local_variables):
         self.stats = dict()
@@ -128,11 +128,16 @@ class RegressionAccuracy(Metric):
 
         for regime in self.stats.keys():
 
+            # multi_output = 'uniform_average'
+            multi_output = 'raw_values'
+
             self.stats[regime].explained_variance = sklearn.metrics.explained_variance_score(
-                self.stats[regime].targets, self.stats[regime].predicted)
+                self.stats[regime].targets, self.stats[regime].predicted,
+                multioutput=multi_output)
 
             self.stats[regime].r2_score = sklearn.metrics.r2_score(
-                self.stats[regime].targets, self.stats[regime].predicted)
+                self.stats[regime].targets, self.stats[regime].predicted,
+                multioutput=multi_output)
 
             self.stats[regime].epoch = local_variables['epoch']
 
@@ -144,9 +149,14 @@ class RegressionAccuracy(Metric):
 
         for regime in self.stats.keys():
 
-            explained_str = f'\n{regime} explained variance:\n{self.stats[regime].explained_variance:.3f} '
+            # explained_str = f'\n{regime} explained variance:\n{self.stats[regime].explained_variance:.3f} '
+            # r2_score_str = f'\n{regime} r2 score:\n{self.stats[regime].r2_score:.3f} '
 
-            r2_score_str = f'\n{regime} r2 score:\n{self.stats[regime].r2_score:.3f} '
+            explained_var_values_str = np.array_str(np.array(self.stats[regime].explained_variance))
+            explained_str = f'\n{regime} explained variance:\n{explained_var_values_str} '
+
+            r2_score_values_str = np.array_str(np.array(self.stats[regime].r2_score))
+            r2_score_str = f'\n{regime} r2 score:\n{r2_score_values_str} '
 
             text_record += explained_str + r2_score_str + '\n'
 

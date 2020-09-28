@@ -65,7 +65,7 @@ class Bundle:
         return self.streams.__len__()
 
     def __init__(self, node0: Node, node1: Node,
-                 control_points=None, num_streams=1, points_per_stream=50, kind=None):
+                 control_points=None, num_streams=1, points_per_stream=50, kind=None, radius=1):
         super().__init__()
 
         self.points_per_stream = points_per_stream
@@ -75,6 +75,7 @@ class Bundle:
         self.streams = list()
         self._create(num_streams)
         self.kind = kind
+        self.radius = radius
 
     def _create(self, num_streams):
         for _ in range(num_streams):
@@ -186,5 +187,7 @@ class CylindricalNode(Node):
         depth = self.depth * npr.rand()
         x = self.radius * np.cos(angle)
         y = self.radius * np.sin(angle)
-        z = depth
+        # z = depth
+        z = 0
+
         return x, y, z

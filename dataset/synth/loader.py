@@ -71,7 +71,8 @@ class SynthDataset(torch.utils.data.Dataset):
                 perturb=perturb
             )
 
-            target = self.reader.load_covariate(subject, regression=self.regression)
+            # target = self.reader.load_covariate(subject, regression=self.regression)
+            targets = self.reader.load_covariate_dict(subject, regression=self.regression)
 
             if to_bool(Config.get_option('DATABASE', 'randomize', 'False')):
                 dwi_tensor = self._randomize_dwi_tensor(dwi_tensor, target)
@@ -79,7 +80,8 @@ class SynthDataset(torch.utils.data.Dataset):
         except SkipSubjectException:
             self.reader.logger.warning("skipping subject {:}".format(subject))
 
-        return dwi_tensor, target, subject
+        return dwi_tensor, targets, subject
+        # return dwi_tensor, target, subject
 
     def _randomize_dwi_tensor(self, dwi_tensor, target):
         if target.argmax() == 1:
@@ -93,6 +95,9 @@ class SynthDataset(torch.utils.data.Dataset):
     def number_of_classes(self):
         num_classes = self.__getitem__(0)[1].size
         return num_classes
+
+    def number_of_outputs(self):
+        return len(self.__getitem__(0)[1].keys())
 
 
 class SynthDataLoader(torch.utils.data.DataLoader):
