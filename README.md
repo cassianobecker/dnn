@@ -2,9 +2,9 @@
 
 Diffusion neural network
 
-### Setting up
+## Setting up
 
-##### Conda environment
+#### Conda environment
 * To create a conda environment, `cd` to the directory, and
   * run `conda env create -f environment.yml` on a local machine and
   * run `conda env create -f environment_cbica.yml` on the CBICA cluster.
@@ -16,7 +16,7 @@ Diffusion neural network
   * Open PyCharm. Open `dnn` directory as a project.
   * Then, select "Preferences" > "Project: dnn" > ⚙️ > "Add..." > "Conda Environment" > "Existing environment" > "/Users/username/anaconda3/envs/dti-enn/bin/python"
  
- ##### HCP database setup
+#### HCP database setup
 * Download the HCP covariates file ([link](https://db.humanconnectome.org/REST/search/dict/Subject%20Information/results?format=csv&removeDelimitersFromFieldValues=true&restricted=0&project=HCP_1200)), and save as `dataset/hcp/res/hcp_covariates.csv`. 
 * Get AWS credentials to HCP (see [link](https://wiki.humanconnectome.org/plugins/viewsource/viewpagesrc.action?pageId=67666030)).
   * Save to file `~/.aws/credentials` in you home folder with conents 
@@ -27,11 +27,11 @@ Diffusion neural network
     ```
   * Using [CLI](https://aws.amazon.com/cli/), run `aws configure`.
 
-##### DTI
+#### DTI
 * Download and install [FSL](https://fsl.fmrib.ox.ac.uk/fsl/fslwiki/FslInstallation).
 * Download and install [ANTs](https://github.com/ANTsX/ANTs)
 
-### Getting started
+## Getting started
 
 #### Downloading & processing HCP Data
 * List the subjects to download and process in `dataset/hcp/dti/scripts/conf/subjects.txt`.
@@ -47,3 +47,7 @@ Diffusion neural network
 	* The list of subjects for training and testing is located in  `experiments/hcp/conf/(test|train)_subjects.txt`.
     	* The results of you experiments will be stored in '~/.dnn/results' under a folder named according to the data and time when you then experiment was run.
 	* See list of covariates [here](https://wiki.humanconnectome.org/display/PublicData/HCP+Data+Dictionary+Public-+Updated+for+the+1200+Subject+Release#HCPDataDictionaryPublic-Updatedforthe1200SubjectRelease-Instrument:FluidIntelligence(PennProgressiveMatrices)).
+
+## Other
+
+* [How](https://github.com/cassianobecker/dnn/wiki/Running-MITK-on-Docker) to run [MITK](https://www.mitk.org/wiki/The_Medical_Imaging_Interaction_Toolkit_(MITK)) on Docker
