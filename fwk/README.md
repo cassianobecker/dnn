@@ -92,6 +92,8 @@ def execute(self):
   print(f"Here is a configuration key: {Config.config['Section']['key']}")
 ```
 
+Alternatively, you can also use the convenience method `Config.get_option('your_section', 'your_key', cast_function=None, default=None)`, which returns the value specified in the `default` parameter in case the session-key pair is not present, and lets you specify a casting function to transform the string returned by the key into the desired data type. The last two arguments are optional, and can be omitted, if desired.
+
 ### (3) `MetricsHandler`
 
 You can use `MetricsHandler.dispatch_event(locals(), 'event_name')` to log local variables.
