@@ -94,6 +94,17 @@ def execute(self):
 
 Alternatively, you can also use the convenience method `Config.get_option('your_section', 'your_key', cast_function=None, default=None)`. This method returns the value specified in the `default` parameter in case the session-key pair is not present. It also lets you specify a casting function to transform the string returned by the key into the desired data type. For example, you can set `cast_function=int` to return an integer value. The last two arguments are optional, and can be omitted, if desired.
 
+
+Example:
+``` python
+from fwk.config import Config
+
+class Example:
+
+def execute(self):
+  learning_rate = Config.get_option('ALGORITHM', 'learning_rate', cast_function=float, default=1.e-4)    
+```
+
 ### (3) `MetricsHandler`
 
 You can use `MetricsHandler.dispatch_event(locals(), 'event_name')` to log local variables.
