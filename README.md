@@ -50,4 +50,4 @@ Diffusion neural network
 
 ## Running [MITK](https://www.mitk.org/wiki/The_Medical_Imaging_Interaction_Toolkit_(MITK)) on Docker
 
-See README.md on [dataset/synth](https://github.com/cassianobecker/dnn/tree/master/dataset/synth]. 
+See README.md on [dataset/synth](https://github.com/cassianobecker/dnn/tree/master/dataset/synth).
