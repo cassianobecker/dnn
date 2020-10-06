@@ -48,6 +48,6 @@ Diffusion neural network
     	* The results of you experiments will be stored in '~/.dnn/results' under a folder named according to the data and time when you then experiment was run.
 	* See list of covariates [here](https://wiki.humanconnectome.org/display/PublicData/HCP+Data+Dictionary+Public-+Updated+for+the+1200+Subject+Release#HCPDataDictionaryPublic-Updatedforthe1200SubjectRelease-Instrument:FluidIntelligence(PennProgressiveMatrices)).
 
-## Other
+## Running [MITK](https://www.mitk.org/wiki/The_Medical_Imaging_Interaction_Toolkit_(MITK)) on Docker
 
-* [How](https://github.com/cassianobecker/dnn/wiki/Running-MITK-on-Docker) to run [MITK](https://www.mitk.org/wiki/The_Medical_Imaging_Interaction_Toolkit_(MITK)) on Docker
+See README.md on [dataset/synth](https://github.com/cassianobecker/dnn/tree/master/dataset/synth]. 
