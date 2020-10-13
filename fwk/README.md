@@ -19,12 +19,12 @@ Example: `python schedule.py local args.ini`
 
 ### (1) Execution environment
 
-| Tag         | Description | Separate process | Cluster |
-|-------------|-------------|------------------|---------|
-| `local`     | Runs experiment as `python -c`. | ✅ | ❌ |
-| `debug`     | Runs experiment directly. Outputs to console. | ❌ | ❌ |
-| `cbica_cpu` | Submits experiment via `qsub`. | ✅ | ✅ |
-| `cbica_gpu` | Submits experiment via `qsub` with the gpu. | ✅ | ✅ |
+| Tag         | Description | Separate process | Cluster | GPU |
+|-------------|-------------|------------------|---------|-----|
+| `local`     | Runs experiment as `python -c`. | ✅ | ❌ | ❌ |
+| `debug`     | Runs experiment directly. Outputs to console. | ❌ | ❌ | ❌ |
+| `cbica_cpu` | Submits experiment via `qsub`. | ✅ | ✅ | ❌ |
+| `cbica_gpu` | Submits experiment via `qsub` with the gpu. | ✅ | ✅ | ✅ |
 
 ### (2) Configuration file
 
